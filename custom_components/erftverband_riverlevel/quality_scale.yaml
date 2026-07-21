@@ -1,0 +1,13 @@
+---
+golden:
+  quality_scale: silver
+  requirements:
+    - "config_flow"
+    - "entity_unique_id"
+    - "entity_name_translated"
+    - "device_registry"
+    - "diagnostics"
+    - "exception_translations"
+    - "reconfig"
+    - "test_coverage"
+    - "translated_entity_names"

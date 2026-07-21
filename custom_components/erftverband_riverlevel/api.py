@@ -1,0 +1,512 @@
+from __future__ import annotations
+
+import html
+import re
+from asyncio import timeout
+from datetime import datetime
+from html.parser import HTMLParser
+from zoneinfo import ZoneInfo
+
+from aiohttp import ClientSession, ClientTimeout
+
+from .const import (
+    DETAIL_URL_PATTERN,
+    PRIMARY_URL,
+    REQUEST_TIMEOUT,
+    USER_AGENT,
+)
+from .models import StationDescriptor, StationMeasurement, StationMetadata, StationThresholds
+
+TZ_BERLIN = ZoneInfo("Europe/Berlin")
+
+
+def parse_german_number(raw: str | None) -> float | None:
+    if raw is None:
+        return None
+    s = raw.strip().replace("\xa0", " ").replace("&nbsp;", " ").replace("&thinsp;", " ")
+    s = s.replace("\u2009", " ")
+    s = re.sub(r"\s+", " ", s)
+    if not s or s in ("-", "\u2014", "\u2013", "", "---", "k.A."):
+        return None
+    s = re.sub(r"([+-])\s+", r"\1", s)
+    s = re.sub(r"[^\d,.\-]", "", s)
+    if not s or s in ("-", "\u2014", "\u2013"):
+        return None
+    has_dot = "." in s
+    has_comma = "," in s
+    if has_dot and has_comma:
+        last_dot = s.rindex(".")
+        last_comma = s.rindex(",")
+        if last_comma > last_dot:
+            s = s.replace(".", "")
+            s = s.replace(",", ".")
+        else:
+            s = s.replace(",", "")
+    elif has_comma and not has_dot:
+        s = s.replace(",", ".")
+    s = s.replace("--", "-")
+    try:
+        return float(s)
+    except ValueError, TypeError:
+        return None
+
+
+def parse_german_datetime(text: str | None) -> datetime | None:
+    if not text:
+        return None
+    s = text.strip().replace("\xa0", " ")
+    s = re.sub(r"[-\s]+", " ", s)
+    m = re.match(
+        r"(\d{1,2})\.(\d{1,2})\.(\d{2,4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?",
+        s,
+    )
+    if not m:
+        return None
+    day, month, year, hour, minute = (int(m[1]), int(m[2]), int(m[3]), int(m[4]), int(m[5]))
+    second = int(m[6]) if m[6] else 0
+    if year < 100:
+        year += 2000
+    try:
+        return datetime(year, month, day, hour, minute, second, tzinfo=TZ_BERLIN)
+    except ValueError:
+        return None
+
+
+def iso_with_offset(dt: datetime | None) -> str | None:
+    if dt is None:
+        return None
+    return dt.isoformat()
+
+
+def age_minutes(dt: datetime | None) -> int | None:
+    if dt is None:
+        return None
+    now = datetime.now(TZ_BERLIN)
+    delta = now - dt
+    return int(delta.total_seconds() / 60)
+
+
+class HowisOverviewParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self._in_table = False
+        self._in_tr = False
+        self._in_cell = False
+        self._current_cell: list[str] = []
+        self._current_row: list[str] = []
+        self.tables: list[list[list[str]]] = []
+        self._current_table: list[list[str]] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        tag = tag.lower()
+        if tag == "table":
+            self._in_table = True
+            if self._current_table:
+                self.tables.append(self._current_table)
+            self._current_table = []
+            self._current_row = []
+        elif tag == "tr" and self._in_table:
+            if self._current_row:
+                self._current_table.append(self._current_row)
+            self._current_row = []
+            self._in_tr = True
+        elif tag in ("td", "th") and self._in_tr:
+            self._in_cell = True
+            self._current_cell = []
+
+    def handle_endtag(self, tag: str) -> None:
+        tag = tag.lower()
+        if tag == "table":
+            if self._current_row:
+                self._current_table.append(self._current_row)
+            if self._current_table:
+                self.tables.append(self._current_table)
+            self._current_table = []
+            self._current_row = []
+            self._in_table = False
+            self._in_tr = False
+        elif tag == "tr":
+            if self._in_tr and self._current_row:
+                self._current_table.append(self._current_row)
+            self._current_row = []
+            self._in_tr = False
+        elif tag in ("td", "th"):
+            if self._in_cell:
+                cell_text = "".join(self._current_cell).strip()
+                self._current_row.append(cell_text)
+                self._current_cell = []
+                self._in_cell = False
+
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if self._in_cell:
+            self._current_cell.append(" ")
+
+    def handle_data(self, data: str) -> None:
+        if self._in_cell:
+            self._current_cell.append(html.unescape(data))
+
+    def handle_entityref(self, name: str) -> None:
+        if self._in_cell:
+            self._current_cell.append(html.unescape(f"&{name};"))
+
+    def handle_charref(self, name: str) -> None:
+        if self._in_cell:
+            self._current_cell.append(html.unescape(f"&#{name};"))
+
+
+def _extract_hrefs(html_content: str) -> dict[str, str]:
+    hrefs: dict[str, str] = {}
+    for m in re.finditer(
+        r'<a\s+href="\./pegel/Pegel_([^"]+?)_zr\.html">',
+        html_content,
+    ):
+        station_id = m.group(1)
+        hrefs[station_id] = f"./pegel/Pegel_{station_id}_zr.html"
+    return hrefs
+
+
+def _is_header_or_section_row(row: list[str]) -> bool:
+    if not row:
+        return True
+    header_keywords = {
+        "pegel",
+        "gew\u00e4sser",
+        "wasserstand",
+        "abfluss",
+        "letzter",
+        "messwert",
+        "tendenz",
+    }
+    joined = " ".join(row).lower()
+    keyword_count = sum(1 for k in header_keywords if k in joined)
+    if keyword_count >= 2:
+        return True
+    first = row[0].strip().lower()
+    if len(row) == 1:
+        section_keywords = {
+            "obere",
+            "veybach",
+            "swist",
+            "rotbach",
+            "mittlere",
+            "neffelbach",
+            "untere",
+            "gillbach",
+        }
+        if any(sk in first for sk in section_keywords):
+            return True
+    total_len = sum(len(c) for c in row)
+    if total_len < 10:
+        return True
+    return False
+
+
+def _parse_station_name_waterbody(cell: str) -> tuple[str, str]:
+    cell_clean = re.sub(r"<sup[^>]*>.*?</sup>", "", cell, flags=re.DOTALL)
+    cell_clean = re.sub(r"<a[^>]*>", "", cell_clean)
+    cell_clean = re.sub(r"</a>", "", cell_clean)
+    cell_clean = cell_clean.strip()
+    cell_clean = html.unescape(cell_clean)
+    m = re.match(r"([^(]+?)\s*\(([^)]+)\)", cell_clean)
+    if m:
+        station_name = m.group(1).strip()
+        waterbody = m.group(2).strip()
+    else:
+        station_name = cell_clean
+        waterbody = ""
+    station_name = station_name.replace("\xa0", " ").strip()
+    waterbody = waterbody.replace("\xa0", " ").strip()
+    return station_name, waterbody
+
+
+def _normalize_station_name(name: str) -> str:
+    s = name.lower().strip()
+    s = s.replace("\u00fc", "ue").replace("\u00f6", "oe").replace("\u00e4", "ae")
+    s = s.replace("\u00df", "ss")
+    s = s.replace("_", " ").replace("-", " ")
+    s = re.sub(r"\s+", " ", s)
+    return s
+
+
+def parse_overview_page(
+    html_content: str,
+    station_ids: set[str] | None = None,
+) -> dict[str, StationMeasurement]:
+    hrefs = _extract_hrefs(html_content)
+    parser = HowisOverviewParser()
+    parser.feed(html_content)
+
+    result: dict[str, StationMeasurement] = {}
+
+    for table in parser.tables:
+        for row in table:
+            if not row:
+                continue
+            if _is_header_or_section_row(row):
+                continue
+            if len(row) < 10:
+                continue
+
+            first_cell = row[0].strip()
+            first_cell_normalized = _normalize_station_name(first_cell)
+
+            station_id: str | None = None
+            for sid in hrefs:
+                if _normalize_station_name(sid) in first_cell_normalized:
+                    station_id = sid
+                    break
+
+            if station_id is None:
+                continue
+
+            if station_ids is not None and station_id not in station_ids:
+                continue
+
+            datetime_str = row[1] if len(row) > 1 else ""
+            measured_at = parse_german_datetime(datetime_str)
+
+            water_level_str = row[2] if len(row) > 2 else ""
+            water_trend_str = row[3] if len(row) > 3 else ""
+            discharge_str = row[4] if len(row) > 4 else ""
+            discharge_trend_str = row[5] if len(row) > 5 else ""
+
+            water_level = parse_german_number(water_level_str)
+            water_trend = parse_german_number(water_trend_str)
+            discharge = parse_german_number(discharge_str)
+            discharge_trend = parse_german_number(discharge_trend_str)
+
+            result[station_id] = StationMeasurement(
+                measured_at=iso_with_offset(measured_at),
+                age_minutes=age_minutes(measured_at),
+                water_level_cm=water_level,
+                water_trend_cm_h=water_trend,
+                discharge_m3s=discharge,
+                discharge_trend_m3s_h=discharge_trend,
+            )
+
+    return result
+
+
+def extract_station_descriptors(html_content: str) -> dict[str, StationDescriptor]:
+    descriptors: dict[str, StationDescriptor] = {}
+
+    for m in re.finditer(
+        r'<a\s+href="\./pegel/Pegel_([^"]+?)_zr\.html">(.*?)</a>',
+        html_content,
+        re.DOTALL,
+    ):
+        station_id = m.group(1)
+        full_text = m.group(2).strip()
+        full_text = re.sub(r"<sup[^>]*>.*?</sup>", "", full_text, flags=re.DOTALL)
+        full_text = html.unescape(full_text.strip())
+        station_name, waterbody = _parse_station_name_waterbody(full_text)
+        detail_url = DETAIL_URL_PATTERN.format(station_id=station_id)
+
+        descriptors[station_id] = StationDescriptor(
+            station_id=station_id,
+            station_name=station_name,
+            waterbody=waterbody,
+            detail_url=detail_url,
+        )
+
+    return descriptors
+
+
+class DetailPageParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self._in_section_table = False
+        self._in_tr = False
+        self._in_td = False
+        self._in_h4 = False
+        self._h4_text: list[str] = []
+        self._current_td: list[str] = []
+        self._current_row: list[str] = []
+        self._section: str | None = None
+        self.section_rows: dict[str, list[list[str]]] = {}
+
+    def _flush_row(self) -> None:
+        if self._current_row:
+            self.section_rows.setdefault(self._section or "", []).append(list(self._current_row))
+            self._current_row = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        tag = tag.lower()
+        if tag == "h4":
+            for k, _ in attrs:
+                if k == "class":
+                    self._in_h4 = True
+                    self._h4_text = []
+                    return
+        elif tag == "table":
+            self._in_section_table = True
+        elif tag == "tr" and self._in_section_table:
+            self._flush_row()
+            self._in_tr = True
+        elif tag == "td" and self._in_tr:
+            self._in_td = True
+            self._current_td = []
+
+    def handle_endtag(self, tag: str) -> None:
+        tag = tag.lower()
+        if tag == "h4" and self._in_h4:
+            self._in_h4 = False
+            text = "".join(self._h4_text).strip().lower()
+            section_keywords = {
+                "stammdaten": "stammdaten",
+                "hauptwerte": "hauptwerte",
+                "hochwasser-kategorien": "hw_kategorien",
+            }
+            for kw, key in section_keywords.items():
+                if kw in text:
+                    self._section = key
+                    break
+        elif tag == "td" and self._in_td:
+            self._in_td = False
+            cell = html.unescape("".join(self._current_td).strip())
+            self._current_row.append(cell)
+            self._current_td = []
+        elif tag == "tr" and self._in_section_table:
+            self._flush_row()
+            self._in_tr = False
+        elif tag == "table":
+            self._flush_row()
+            self._in_section_table = False
+            self._in_tr = False
+
+    def handle_data(self, data: str) -> None:
+        if self._in_h4:
+            self._h4_text.append(data)
+        elif self._in_td:
+            self._current_td.append(data)
+
+    def handle_entityref(self, name: str) -> None:
+        decoded = html.unescape(f"&{name};")
+        if self._in_h4:
+            self._h4_text.append(decoded)
+        elif self._in_td:
+            self._current_td.append(decoded)
+
+    def handle_charref(self, name: str) -> None:
+        decoded = html.unescape(f"&#{name};")
+        if self._in_h4:
+            self._h4_text.append(decoded)
+        elif self._in_td:
+            self._current_td.append(decoded)
+
+
+def _parse_labeled_rows(rows: list[list[str]]) -> dict[str, str]:
+    values: dict[str, str] = {}
+    for row in rows:
+        if not row or len(row) < 2:
+            continue
+        label = row[0].strip().lower()
+        if len(row) == 2:
+            values[label] = row[1].strip()
+        elif len(row) == 3:
+            w_val = row[1].strip()
+            q_val = row[2].strip()
+            values[f"{label}_w"] = w_val
+            values[f"{label}_q"] = q_val
+    return values
+
+
+def _extract_thresholds(table_rows: list[list[str]]) -> StationThresholds:
+    values = _parse_labeled_rows(table_rows)
+
+    def get(field: str) -> float | None:
+        v = values.get(field)
+        if v and v not in ("-", "\u2014", "\u2013", "---", "k.A."):
+            return parse_german_number(v)
+        return None
+
+    return StationThresholds(
+        mw_cm=get("mw / mq_w") or get("mnw / mnq_w"),
+        mhw_cm=get("mhw / mhq_w"),
+        ev_alarm_cm=get("ev-einsatzplan_w"),
+        ev_alarm_m3s=get("ev-einsatzplan_q"),
+        hq10_cm=get("hq10_w"),
+        hq10_m3s=get("hq10_q"),
+        hq100_cm=get("hq100_w"),
+        hq100_m3s=get("hq100_q"),
+        hqextrem_cm=get("hqextrem_w"),
+        hqextrem_m3s=get("hqextrem_q"),
+    )
+
+
+def parse_detail_page(
+    html_content: str,
+    descriptor: StationDescriptor,
+) -> StationMetadata:
+    parser = DetailPageParser()
+    parser.feed(html_content)
+
+    stammdaten_rows = parser.section_rows.get("stammdaten", [])
+    hauptwerte_rows = parser.section_rows.get("hauptwerte", [])
+    hw_kategorien_rows = parser.section_rows.get("hw_kategorien", [])
+
+    thresholds = _extract_thresholds(hw_kategorien_rows)
+
+    if hauptwerte_rows:
+        hw_values = _parse_labeled_rows(hauptwerte_rows)
+        if thresholds.mw_cm is None:
+            thresholds.mw_cm = parse_german_number(hw_values.get("mw / mq_w"))
+        if thresholds.mhw_cm is None:
+            thresholds.mhw_cm = parse_german_number(hw_values.get("mhw / mhq_w"))
+
+    catchment_area: float | None = None
+    for row in stammdaten_rows:
+        if len(row) >= 2:
+            key = row[0].strip().lower()
+            val = row[1].strip()
+            if "einzugsgebiet" in key and val and val not in ("-", "k.A."):
+                catchment_area = parse_german_number(val)
+                break
+
+    return StationMetadata(
+        station_id=descriptor.station_id,
+        station_name=descriptor.station_name,
+        waterbody=descriptor.waterbody,
+        detail_url=descriptor.detail_url,
+        thresholds=thresholds,
+        catchment_area_km2=catchment_area,
+        fetched_at=iso_with_offset(datetime.now(TZ_BERLIN)),
+    )
+
+
+class ErftverbandApi:
+    def __init__(self, session: ClientSession) -> None:
+        self._session = session
+        self._timeout = ClientTimeout(total=REQUEST_TIMEOUT)
+
+    async def _fetch(self, url: str) -> str:
+        headers = {"User-Agent": USER_AGENT}
+        async with timeout(REQUEST_TIMEOUT):
+            async with self._session.get(url, headers=headers, timeout=self._timeout) as resp:
+                resp.raise_for_status()
+                return await resp.text()
+
+    async def fetch_overview(self) -> str:
+        return await self._fetch(PRIMARY_URL)
+
+    async def fetch_detail(self, station_id: str) -> str:
+        url = DETAIL_URL_PATTERN.format(station_id=station_id)
+        return await self._fetch(url)
+
+    async def fetch_station_descriptors(self) -> dict[str, StationDescriptor]:
+        html = await self.fetch_overview()
+        return extract_station_descriptors(html)
+
+    async def fetch_measurements(
+        self,
+        station_ids: set[str] | None = None,
+    ) -> dict[str, StationMeasurement]:
+        html = await self.fetch_overview()
+        return parse_overview_page(html, station_ids)
+
+    async def fetch_station_metadata(
+        self,
+        descriptor: StationDescriptor,
+    ) -> StationMetadata:
+        html = await self.fetch_detail(descriptor.station_id)
+        return parse_detail_page(html, descriptor)

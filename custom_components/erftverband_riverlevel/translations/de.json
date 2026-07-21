@@ -1,0 +1,79 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Erftverband HOWIS – Pegelauswahl",
+        "description": "Wähle einen oder mehrere Pegel aus der Liste aus.",
+        "data": {
+          "station_ids": "Pegel",
+          "scan_interval": "Aktualisierungsintervall (Sekunden)",
+          "stale_threshold": "Veraltet-Schwelle (Minuten)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung zum Erftverband HOWIS fehlgeschlagen.",
+      "invalid_station": "Ausgewählter Pegel wurde nicht gefunden.",
+      "no_stations": "Mindestens ein Pegel muss ausgewählt werden.",
+      "unknown": "Ein unerwarteter Fehler ist aufgetreten."
+    },
+    "abort": {
+      "already_configured": "Diese Datenquelle ist bereits eingerichtet."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Erftverband HOWIS – Optionen",
+        "data": {
+          "scan_interval": "Aktualisierungsintervall (Sekunden, 60–3600)",
+          "stale_threshold": "Veraltet-Schwelle (Minuten, 15–1440)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "water_level": {
+        "name": "Wasserstand"
+      },
+      "discharge": {
+        "name": "Abfluss"
+      },
+      "water_trend_raw": {
+        "name": "Wasserstandstrend"
+      },
+      "discharge_trend_raw": {
+        "name": "Abflusstrend"
+      },
+      "last_measurement": {
+        "name": "Letzte Messung"
+      },
+      "data_age": {
+        "name": "Datenalter"
+      },
+      "flood_status": {
+        "name": "Hochwasserstatus",
+        "state": {
+          "normal": "Normal",
+          "ev_action": "EV-Einsatzplan",
+          "hq10": "HQ10",
+          "hq100": "HQ100",
+          "extreme": "HQextrem",
+          "unknown": "Unbekannt"
+        }
+      }
+    },
+    "binary_sensor": {
+      "source_reachable": {
+        "name": "Quelle erreichbar"
+      },
+      "data_stale": {
+        "name": "Daten veraltet"
+      },
+      "flood_alert": {
+        "name": "Hochwasseralarm"
+      }
+    }
+  }
+}

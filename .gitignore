@@ -1,0 +1,44 @@
+# Byte-compiled
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+
+# Pytest
+.pytest_cache/
+test_results/
+
+# Ruff
+.ruff_cache/
+
+# Distribution
+dist/
+*.egg-info/
+
+# Home Assistant config
+config/
+*.db
+*.db-shm
+*.db-wal
+
+# Logs
+*.log
