@@ -27,7 +27,7 @@ fail_under = 80
 
 [dependency-groups]
 dev = [
-    "homeassistant>=2026.2.3",
+    "homeassistant>=2026.7.3",
     "pytest-homeassistant-custom-component>=0.13.316",
     "ruff>=0.15.22",
 ]
