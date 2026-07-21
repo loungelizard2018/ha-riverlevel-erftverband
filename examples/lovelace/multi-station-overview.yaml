@@ -1,0 +1,99 @@
+type: grid
+columns: 2
+square: false
+cards:
+  - type: custom:button-card
+    entity: sensor.essig_orbach_water_level
+    layout: vertical
+    name: Essig (Orbach)
+    show_state: false
+    styles:
+      card:
+        - border-radius: 12px
+        - padding: 12px
+        - box-shadow: 0 2px 6px rgba(0,0,0,0.12)
+    custom_fields:
+      wl:
+        - type: state-label
+          entity: sensor.essig_orbach_water_level
+          style: |
+            paper-item { font-size: 28px; font-weight: 700; color: #4fc3f7; }
+      status:
+        - type: state-label
+          entity: sensor.essig_orbach_flood_status
+          style: |
+            paper-item { font-size: 12px; font-weight: 500; }
+      age:
+        - type: state-label
+          entity: sensor.essig_orbach_data_age
+          style: |
+            paper-item { font-size: 11px; color: var(--secondary-text-color); }
+    card_mod:
+      style: |
+        ha-card {
+          --card-mod-icon: none;
+        }
+
+  - type: custom:button-card
+    entity: sensor.kirchheim_steinbach_water_level
+    layout: vertical
+    name: Kirchheim (Steinbach)
+    show_state: false
+    styles:
+      card:
+        - border-radius: 12px
+        - padding: 12px
+        - box-shadow: 0 2px 6px rgba(0,0,0,0.12)
+    custom_fields:
+      wl:
+        - type: state-label
+          entity: sensor.kirchheim_steinbach_water_level
+          style: |
+            paper-item { font-size: 28px; font-weight: 700; color: #4fc3f7; }
+      status:
+        - type: state-label
+          entity: sensor.kirchheim_steinbach_flood_status
+          style: |
+            paper-item { font-size: 12px; font-weight: 500; }
+      age:
+        - type: state-label
+          entity: sensor.kirchheim_steinbach_data_age
+          style: |
+            paper-item { font-size: 11px; color: var(--secondary-text-color); }
+    card_mod:
+      style: |
+        ha-card {
+          --card-mod-icon: none;
+        }
+
+  - type: custom:button-card
+    entity: sensor.niederberg_rotbach_water_level
+    layout: vertical
+    name: Niederberg (Rotbach)
+    show_state: false
+    styles:
+      card:
+        - border-radius: 12px
+        - padding: 12px
+        - box-shadow: 0 2px 6px rgba(0,0,0,0.12)
+    custom_fields:
+      wl:
+        - type: state-label
+          entity: sensor.niederberg_rotbach_water_level
+          style: |
+            paper-item { font-size: 28px; font-weight: 700; color: #4fc3f7; }
+      ds:
+        - type: state-label
+          entity: sensor.niederberg_rotbach_discharge
+          style: |
+            paper-item { font-size: 14px; color: var(--secondary-text-color); }
+      age:
+        - type: state-label
+          entity: sensor.niederberg_rotbach_data_age
+          style: |
+            paper-item { font-size: 11px; color: var(--secondary-text-color); }
+    card_mod:
+      style: |
+        ha-card {
+          --card-mod-icon: none;
+        }

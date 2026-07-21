@@ -1,0 +1,13 @@
+{
+  "name": "Erftverband River Levels",
+  "filename": "erftverband_riverlevel.zip",
+  "hide_default_branch": true,
+  "homeassistant": "2026.7.0",
+  "render_readme": true,
+  "zip_release": false,
+  "country": ["DE"],
+  "domains": ["erftverband_riverlevel"],
+  "iot_class": "cloud_polling",
+  "content_in_root": false,
+  "categories": ["integration"]
+}

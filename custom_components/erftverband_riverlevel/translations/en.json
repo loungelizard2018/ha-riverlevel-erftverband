@@ -1,0 +1,87 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Erftverband River Levels",
+        "description": "Select one or more gauging stations to monitor.",
+        "data": {
+          "stations": "Gauging Stations"
+        }
+      }
+    },
+    "error": {
+      "at_least_one": "Please select at least one station."
+    },
+    "abort": {
+      "already_configured": "This integration is already configured.",
+      "cannot_connect": "Could not connect to the Erftverband server. Please try again later. Error: {error}",
+      "no_stations_found": "No stations could be found on the Erftverband page."
+    }
+  },
+  "options": {
+    "step": {
+      "stations": {
+        "title": "Station Selection",
+        "description": "Add or remove stations.",
+        "data": {
+          "stations": "Gauging Stations"
+        }
+      },
+      "settings": {
+        "title": "Update Settings",
+        "description": "Configure update interval and stale data thresholds.",
+        "data": {
+          "update_interval": "Update interval (seconds, 60-3600)",
+          "stale_threshold": "Stale threshold (minutes, 15-1440)"
+        }
+      }
+    },
+    "error": {
+      "at_least_one": "Please select at least one station."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "water_level": {
+        "name": "Water Level"
+      },
+      "discharge": {
+        "name": "Discharge"
+      },
+      "wl_trend": {
+        "name": "Water Level Trend"
+      },
+      "q_trend": {
+        "name": "Discharge Trend"
+      },
+      "measured_at": {
+        "name": "Last Measurement"
+      },
+      "data_age": {
+        "name": "Data Age"
+      },
+      "flood_status": {
+        "name": "Flood Status",
+        "state": {
+          "normal": "Normal",
+          "ev_action": "EV Action",
+          "hq10": "HQ10",
+          "hq100": "HQ100",
+          "extreme": "Extreme",
+          "unknown": "Unknown"
+        }
+      }
+    },
+    "binary_sensor": {
+      "source_reachable": {
+        "name": "Source Reachable"
+      },
+      "data_stale": {
+        "name": "Data Stale"
+      },
+      "flood_alert": {
+        "name": "Flood Alert"
+      }
+    }
+  }
+}

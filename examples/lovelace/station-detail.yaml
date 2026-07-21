@@ -1,0 +1,123 @@
+type: vertical-stack
+cards:
+  - type: grid
+    columns: 2
+    square: false
+    cards:
+      - type: custom:button-card
+        layout: vertical
+        styles:
+          card:
+            - border-radius: 12px
+            - padding: 16px
+            - box-shadow: 0 2px 6px rgba(0,0,0,0.12)
+        custom_fields:
+          label:
+            - type: state-label
+              entity: sensor.essig_orbach_water_level
+              style: |
+                paper-item { font-size: 36px; font-weight: 700; color: #4fc3f7; }
+          unit:
+            type: custom:template-entity-row
+            entity: sensor.essig_orbach_water_level
+            name: Wasserstand
+
+      - type: custom:button-card
+        layout: vertical
+        styles:
+          card:
+            - border-radius: 12px
+            - padding: 16px
+            - box-shadow: 0 2px 6px rgba(0,0,0,0.12)
+        custom_fields:
+          label:
+            - type: state-label
+              entity: sensor.essig_orbach_discharge
+              style: |
+                paper-item { font-size: 28px; font-weight: 600; color: #81deea; }
+
+      - type: custom:button-card
+        layout: vertical
+        styles:
+          card:
+            - border-radius: 12px
+            - padding: 16px
+            - box-shadow: 0 2px 6px rgba(0,0,0,0.12)
+        custom_fields:
+          label:
+            - type: state-label
+              entity: sensor.essig_orbach_wl_trend
+
+      - type: custom:button-card
+        layout: vertical
+        styles:
+          card:
+            - border-radius: 12px
+            - padding: 16px
+            - box-shadow: 0 2px 6px rgba(0,0,0,0.12)
+        custom_fields:
+          label:
+            - type: state-label
+              entity: sensor.essig_orbach_q_trend
+
+  - type: entities
+    title: Status
+    entities:
+      - entity: binary_sensor.essig_orbach_source_reachable
+      - entity: binary_sensor.essig_orbach_data_stale
+      - entity: binary_sensor.essig_orbach_flood_alert
+      - entity: sensor.essig_orbach_measured_at
+      - entity: sensor.essig_orbach_data_age
+      - entity: sensor.essig_orbach_flood_status
+
+  - type: custom:apexcharts-card
+    graph_span: 48h
+    span:
+      hours: 48
+    now:
+      show: true
+    yaxis:
+      - id: left
+        min: 0
+        title:
+          text: Wasserstand (cm)
+      - id: right
+        opposite: true
+        min: 0
+        title:
+          text: Abfluss (m³/s)
+    series:
+      - entity: sensor.essig_orbach_water_level
+        name: Wasserstand
+        yaxis_id: left
+        stroke_width: 2
+        color: "#4fc3f7"
+        type: line
+        show:
+          in_header: false
+      - entity: sensor.essig_orbach_discharge
+        name: Abfluss
+        yaxis_id: right
+        stroke_width: 2
+        stroke_dash: 4
+        color: "#81deea"
+        type: line
+        show:
+          in_header: false
+    annotations:
+      - yaxis_id: left
+        y_ref: 60
+        label:
+          text: "EV 60cm"
+          align: left
+        stroke:
+          color: "#ffb300"
+          dash: 4
+      - yaxis_id: left
+        y_ref: 144
+        label:
+          text: "HQ10 144cm"
+          align: left
+        stroke:
+          color: "#ff6d00"
+          dash: 4

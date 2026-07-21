@@ -1,0 +1,33 @@
+[tool.ruff]
+target-version = "py314"
+line-length = 99
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::DeprecationWarning:homeassistant.*",
+    "ignore::FutureWarning:homeassistant.*",
+]
+
+[tool.coverage.run]
+source = ["custom_components/erftverband_riverlevel"]
+omit = ["*/test_*"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 80
+
+[dependency-groups]
+dev = [
+    "homeassistant>=2026.2.3",
+    "pytest-homeassistant-custom-component>=0.13.316",
+    "ruff>=0.15.22",
+]

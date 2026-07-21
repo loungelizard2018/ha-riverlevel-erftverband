@@ -1,0 +1,87 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Erftverband Pegelst\u00e4nde",
+        "description": "W\u00e4hle einen oder mehrere Pegel zur \u00dcberwachung aus.",
+        "data": {
+          "stations": "Pegel"
+        }
+      }
+    },
+    "error": {
+      "at_least_one": "Bitte w\u00e4hle mindestens einen Pegel aus."
+    },
+    "abort": {
+      "already_configured": "Diese Integration ist bereits eingerichtet.",
+      "cannot_connect": "Keine Verbindung zum Erftverband-Server. Fehler: {error}",
+      "no_stations_found": "Auf der Erftverband-Seite wurden keine Pegel gefunden."
+    }
+  },
+  "options": {
+    "step": {
+      "stations": {
+        "title": "Pegelauswahl",
+        "description": "Pegel hinzuf\u00fcgen oder entfernen.",
+        "data": {
+          "stations": "Pegel"
+        }
+      },
+      "settings": {
+        "title": "Update-Einstellungen",
+        "description": "Aktualisierungsintervall und Schwellwert f\u00fcr veraltete Daten konfigurieren.",
+        "data": {
+          "update_interval": "Aktualisierungsintervall (Sekunden, 60\u20133600)",
+          "stale_threshold": "Veraltet-Schwelle (Minuten, 15\u20131440)"
+        }
+      }
+    },
+    "error": {
+      "at_least_one": "Bitte w\u00e4hle mindestens einen Pegel aus."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "water_level": {
+        "name": "Wasserstand"
+      },
+      "discharge": {
+        "name": "Abfluss"
+      },
+      "wl_trend": {
+        "name": "Wasserstand-Tendenz"
+      },
+      "q_trend": {
+        "name": "Abfluss-Tendenz"
+      },
+      "measured_at": {
+        "name": "Letzte Messung"
+      },
+      "data_age": {
+        "name": "Datenalter"
+      },
+      "flood_status": {
+        "name": "Hochwasserstatus",
+        "state": {
+          "normal": "Normal",
+          "ev_action": "EV-Einsatzplan",
+          "hq10": "HQ10",
+          "hq100": "HQ100",
+          "extreme": "HQextrem",
+          "unknown": "Unbekannt"
+        }
+      }
+    },
+    "binary_sensor": {
+      "source_reachable": {
+        "name": "Quelle erreichbar"
+      },
+      "data_stale": {
+        "name": "Daten veraltet"
+      },
+      "flood_alert": {
+        "name": "Hochwasseralarm"
+      }
+    }
+  }
+}
