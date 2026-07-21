@@ -10,14 +10,13 @@ async def test_config_entry_diagnostics(hass, init_integration) -> None:
     )
 
     result = await async_get_config_entry_diagnostics(hass, init_integration)
-    assert "entry" in result
-    assert result["entry"]["entry_id"] == init_integration.entry_id
-    assert result["entry"]["data"]["stations"] == ["Essig"]
-    assert "coordinator" in result
-    assert result["coordinator"]["source_reachable"] is True
-    assert result["coordinator"]["cache_used"] is False
-    assert "stations" in result
-    assert "Essig" in result["stations"]
+    assert result["entry_id"] == init_integration.entry_id
+    assert "Essig" in result["entry_data"]["station_ids"]
+    assert "coordinator_data" in result
+    assert result["coordinator_data"]["source_reachable"] is True
+    assert result["coordinator_data"]["cache_used"] is False
+    assert "metadata" in result
+    assert "Essig" in result["metadata"]
 
 
 @pytest.mark.usefixtures("mock_api_with_detail")
@@ -34,7 +33,6 @@ async def test_device_diagnostics(hass, init_integration) -> None:
     assert device is not None
 
     result = await async_get_device_diagnostics(hass, init_integration, device)
-    assert "device" in result
     assert result["station_id"] == "Essig"
-    assert "station_data" in result
-    assert "coordinator" in result
+    assert result["measurement"] is not None
+    assert isinstance(result["metadata"], dict)

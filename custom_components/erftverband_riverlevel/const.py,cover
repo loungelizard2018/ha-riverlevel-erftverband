@@ -1,0 +1,69 @@
+> from __future__ import annotations
+  
+> from datetime import timedelta
+> from logging import getLogger
+> from typing import Final
+  
+> DOMAIN: Final = "erftverband_riverlevel"
+> NAME: Final = "Erftverband River Levels"
+> MANUFACTURER: Final = "Erftverband"
+> VERSION: Final = "0.1.0"
+  
+> DEFAULT_SCAN_INTERVAL: Final = 300
+> MIN_SCAN_INTERVAL: Final = 60
+> MAX_SCAN_INTERVAL: Final = 3600
+  
+> DEFAULT_STALE_THRESHOLD: Final = 180
+> MIN_STALE_THRESHOLD: Final = 15
+> MAX_STALE_THRESHOLD: Final = 1440
+  
+> DETAIL_PAGE_TTL: Final = timedelta(hours=24)
+  
+> PRIMARY_URL: Final = (
+>     "https://www.erftverband.de/mapserver/arcshp/flussgebiet/klima_abfluss/"
+>     "howis/html/ev_w_tab_aktwerte.html"
+> )
+> DETAIL_URL_PATTERN: Final = (
+>     "https://www.erftverband.de/mapserver/arcshp/flussgebiet/klima_abfluss/"
+>     "howis/html/pegel/Pegel_{station_id}_zr.html"
+> )
+  
+> USER_AGENT: Final = "HomeAssistant-Erftverband-RiverLevel/1.0"
+> REQUEST_TIMEOUT: Final = 20
+  
+> CONF_STATION_ID: Final = "station_id"
+> CONF_STATION_IDS: Final = "station_ids"
+> CONF_SCAN_INTERVAL: Final = "scan_interval"
+> CONF_STALE_THRESHOLD: Final = "stale_threshold"
+  
+> ATTR_WATER_LEVEL_CM: Final = "water_level_cm"
+> ATTR_WATER_TREND_CM_H: Final = "water_trend_cm_h"
+> ATTR_DISCHARGE_M3S: Final = "discharge_m3s"
+> ATTR_DISCHARGE_TREND_M3S_H: Final = "discharge_trend_m3s_h"
+> ATTR_MEASURED_AT: Final = "measured_at"
+> ATTR_AGE_MINUTES: Final = "age_minutes"
+> ATTR_SOURCE_REACHABLE: Final = "source_reachable"
+> ATTR_CACHE_USED: Final = "cache_used"
+> ATTR_STATION_NAME: Final = "station_name"
+> ATTR_WATERBODY: Final = "waterbody"
+  
+> STATE_NORMAL: Final = "normal"
+> STATE_EV_ACTION: Final = "ev_action"
+> STATE_HQ10: Final = "hq10"
+> STATE_HQ100: Final = "hq100"
+> STATE_EXTREME: Final = "extreme"
+> STATE_UNKNOWN: Final = "unknown"
+  
+> LOGGER = getLogger(__package__)
+  
+> FLOOD_STATES: Final = [
+>     STATE_NORMAL,
+>     STATE_EV_ACTION,
+>     STATE_HQ10,
+>     STATE_HQ100,
+>     STATE_EXTREME,
+> ]
+  
+> STORAGE_KEY_METADATA: Final = f"{DOMAIN}.metadata"
+> STORAGE_KEY_LAST_DATA: Final = f"{DOMAIN}.last_data"
+> STORAGE_VERSION: Final = 1

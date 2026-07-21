@@ -34,11 +34,11 @@ async def test_reload_entry(hass, init_integration) -> None:
 
 @pytest.mark.usefixtures("mock_api_with_detail")
 async def test_update_listener_reloads_entry(hass, init_integration) -> None:
-    from custom_components.erftverband_riverlevel.const import CONF_UPDATE_INTERVAL
+    from custom_components.erftverband_riverlevel.const import CONF_SCAN_INTERVAL
 
     hass.config_entries.async_update_entry(
         init_integration,
-        options={CONF_UPDATE_INTERVAL: 600},
+        options={CONF_SCAN_INTERVAL: 600},
     )
     await hass.async_block_till_done()
 

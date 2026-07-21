@@ -1,20 +1,20 @@
 # Agent Instructions
 
-## Verzeichnisse
+## Directories
 
-- Zielrepo: `/Users/vwebpu4/Developer/ha-riverlevel-erftverband`
-- Referenz (read-only): `/Users/vwebpu4/Developer/homeassistant-odf-reference`
+- Target repo: `/Users/vwebpu4/Developer/ha-riverlevel-erftverband`
+- Reference (read-only): `/Users/vwebpu4/Developer/homeassistant-odf-reference`
 
-## Prüfungen
+## Checks
 
-Vor jeder Änderung:
+Before each change:
 - `git diff --check`
 - `uv run ruff check .`
 - `uv run ruff format --check .`
 - `uv run pytest -vv --cov=custom_components/erftverband_riverlevel --cov-report=term-missing`
 
-## Verbote
+## Prohibitions
 
-- Kein Commit, Push oder GitHub Release
-- Keine Änderungen an `/Volumes/config`
-- Keine Änderungen am Referenz-Repository
+- No commit, push, or GitHub release
+- No changes to `/Volumes/config`
+- No changes to the reference repository

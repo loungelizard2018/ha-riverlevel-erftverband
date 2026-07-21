@@ -1,68 +1,69 @@
 from __future__ import annotations
 
-from enum import StrEnum
+from datetime import timedelta
+from logging import getLogger
+from typing import Final
 
-DOMAIN = "erftverband_riverlevel"
-NAME = "Erftverband River Levels"
-VERSION = "0.1.0"
-MANUFACTURER = "Erftverband"
+DOMAIN: Final = "erftverband_riverlevel"
+NAME: Final = "Erftverband River Levels"
+MANUFACTURER: Final = "Erftverband"
+VERSION: Final = "0.1.0"
 
-CONF_STATIONS = "stations"
-CONF_UPDATE_INTERVAL = "update_interval"
-CONF_STALE_THRESHOLD = "stale_threshold"
+DEFAULT_SCAN_INTERVAL: Final = 300
+MIN_SCAN_INTERVAL: Final = 60
+MAX_SCAN_INTERVAL: Final = 3600
 
-DEFAULT_UPDATE_INTERVAL = 300
-MIN_UPDATE_INTERVAL = 60
-MAX_UPDATE_INTERVAL = 3600
-DEFAULT_STALE_THRESHOLD = 180
-MIN_STALE_THRESHOLD = 15
-MAX_STALE_THRESHOLD = 1440
+DEFAULT_STALE_THRESHOLD: Final = 180
+MIN_STALE_THRESHOLD: Final = 15
+MAX_STALE_THRESHOLD: Final = 1440
 
-DETAIL_TTL_HOURS = 24
+DETAIL_PAGE_TTL: Final = timedelta(hours=24)
 
-OVERVIEW_URL = "https://www.erftverband.de/mapserver/arcshp/flussgebiet/klima_abfluss/howis/html/ev_w_tab_aktwerte.html"
-DETAIL_URL_TEMPLATE = "https://www.erftverband.de/mapserver/arcshp/flussgebiet/klima_abfluss/howis/html/pegel/Pegel_{station_id}_zr.html"
+PRIMARY_URL: Final = (
+    "https://www.erftverband.de/mapserver/arcshp/flussgebiet/klima_abfluss/"
+    "howis/html/ev_w_tab_aktwerte.html"
+)
+DETAIL_URL_PATTERN: Final = (
+    "https://www.erftverband.de/mapserver/arcshp/flussgebiet/klima_abfluss/"
+    "howis/html/pegel/Pegel_{station_id}_zr.html"
+)
 
-USER_AGENT = "HomeAssistant-ErftverbandRiverLevel/1.0"
-REQUEST_TIMEOUT = 20
+USER_AGENT: Final = "HomeAssistant-Erftverband-RiverLevel/1.0"
+REQUEST_TIMEOUT: Final = 20
 
-STORAGE_KEY = f"{DOMAIN}.coordinator_data"
-STORAGE_VERSION = 1
+CONF_STATION_ID: Final = "station_id"
+CONF_STATION_IDS: Final = "station_ids"
+CONF_SCAN_INTERVAL: Final = "scan_interval"
+CONF_STALE_THRESHOLD: Final = "stale_threshold"
 
-ATTR_STATION_ID = "station_id"
-ATTR_STATION_NAME = "station_name"
-ATTR_WATERBODY = "waterbody"
-ATTR_MEASURED_AT = "measured_at"
-ATTR_AGE_MINUTES = "age_minutes"
-ATTR_WATER_LEVEL_CM = "water_level_cm"
-ATTR_DISCHARGE_M3S = "discharge_m3s"
-ATTR_WL_TREND = "wl_trend"
-ATTR_Q_TREND = "q_trend"
-ATTR_SOURCE_REACHABLE = "source_reachable"
-ATTR_CACHE_USED = "cache_used"
-ATTR_THRESHOLDS = "thresholds"
+ATTR_WATER_LEVEL_CM: Final = "water_level_cm"
+ATTR_WATER_TREND_CM_H: Final = "water_trend_cm_h"
+ATTR_DISCHARGE_M3S: Final = "discharge_m3s"
+ATTR_DISCHARGE_TREND_M3S_H: Final = "discharge_trend_m3s_h"
+ATTR_MEASURED_AT: Final = "measured_at"
+ATTR_AGE_MINUTES: Final = "age_minutes"
+ATTR_SOURCE_REACHABLE: Final = "source_reachable"
+ATTR_CACHE_USED: Final = "cache_used"
+ATTR_STATION_NAME: Final = "station_name"
+ATTR_WATERBODY: Final = "waterbody"
 
-SENSOR_TYPES = {
-    "water_level": {"name": "Water Level", "unit": "cm", "icon": "mdi:waves"},
-    "discharge": {"name": "Discharge", "unit": "m\u00b3/s", "icon": "mdi:pipe"},
-    "wl_trend": {"name": "Water Level Trend", "unit": "cm/h", "icon": "mdi:trending-up"},
-    "q_trend": {"name": "Discharge Trend", "unit": "m\u00b3/s/h", "icon": "mdi:trending-up"},
-    "measured_at": {"name": "Last Measurement", "unit": None, "icon": "mdi:clock-outline"},
-    "data_age": {"name": "Data Age", "unit": "min", "icon": "mdi:clock-alert"},
-    "flood_status": {"name": "Flood Status", "unit": None, "icon": "mdi:flood"},
-}
+STATE_NORMAL: Final = "normal"
+STATE_EV_ACTION: Final = "ev_action"
+STATE_HQ10: Final = "hq10"
+STATE_HQ100: Final = "hq100"
+STATE_EXTREME: Final = "extreme"
+STATE_UNKNOWN: Final = "unknown"
 
-BINARY_SENSOR_TYPES = {
-    "source_reachable": {"name": "Source Reachable"},
-    "data_stale": {"name": "Data Stale"},
-    "flood_alert": {"name": "Flood Alert"},
-}
+LOGGER = getLogger(__package__)
 
+FLOOD_STATES: Final = [
+    STATE_NORMAL,
+    STATE_EV_ACTION,
+    STATE_HQ10,
+    STATE_HQ100,
+    STATE_EXTREME,
+]
 
-class FloodStatus(StrEnum):
-    NORMAL = "normal"
-    EV_ACTION = "ev_action"
-    HQ10 = "hq10"
-    HQ100 = "hq100"
-    EXTREME = "extreme"
-    UNKNOWN = "unknown"
+STORAGE_KEY_METADATA: Final = f"{DOMAIN}.metadata"
+STORAGE_KEY_LAST_DATA: Final = f"{DOMAIN}.last_data"
+STORAGE_VERSION: Final = 1

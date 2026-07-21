@@ -1,24 +1,24 @@
-# Lovelace-Beispiele für Erftverband River Levels
+# Lovelace Example Cards
 
-Diese Karten nutzen HACS Custom Cards.
+## Requirements
 
-## Abhängigkeiten
-
-Installiere folgende Custom Cards über HACS:
+Install these custom cards via HACS:
 
 - [apexcharts-card](https://github.com/RomRider/apexcharts-card)
 - [button-card](https://github.com/custom-cards/button-card)
 - [card-mod](https://github.com/thomasloven/lovelace-card-mod)
 
-## Dateien
+## Cards
 
-| Datei | Beschreibung |
-|-------|-------------|
-| `station-card.yaml` | Karte für genau einen Pegel |
-| `multi-station-overview.yaml` | Übersicht für mehrere Pegel |
-| `station-detail.yaml` | Detailansicht mit Historie |
+| File | Description |
+|---|---|
+| `station-card.yaml` | Card for exactly one gauging station |
+| `multi-station-overview.yaml` | Overview dashboard for multiple stations |
+| `station-detail.yaml` | Detailed view with larger chart |
 
-## Verwendung
+## Usage
 
-Kopiere den YAML-Code in eine manuelle Karte auf deinem Dashboard.
-Passe die Entitäten-IDs an deine Installation an.
+1. Install required custom cards
+2. Add the YAML to your Lovelace dashboard in YAML mode
+3. Adjust entity names to match your selected stations
+4. The cards are responsive (2 columns desktop, 1 column mobile)

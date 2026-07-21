@@ -1,21 +1,17 @@
 from __future__ import annotations
 
-import logging
-from datetime import datetime, timedelta
-
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
 )
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, FloodStatus
+from .const import DOMAIN
 from .coordinator import ErftverbandCoordinator
 from .entity import ErftverbandEntity
-
-_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
@@ -24,130 +20,116 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     coordinator: ErftverbandCoordinator = hass.data[DOMAIN][entry.entry_id]
+    station_ids: set[str] = entry.data.get("station_ids", set())
 
-    entities: list[BinarySensorEntity] = []
-    for station_id in coordinator._station_ids:
-        entities.append(SourceReachableSensor(coordinator, station_id))
-        entities.append(DataStaleSensor(coordinator, station_id))
-        entities.append(FloodAlertSensor(coordinator, station_id))
+    entities: list[ErftverbandEntity] = []
+    for sid in station_ids:
+        entities.extend(
+            [
+                DataStaleBinarySensor(coordinator, sid),
+                FloodAlertBinarySensor(coordinator, sid),
+            ]
+        )
 
+    entities.append(SourceReachableBinarySensor(coordinator, "_global"))
     async_add_entities(entities)
 
 
-class SourceReachableSensor(ErftverbandEntity, BinarySensorEntity):
+class ErftverbandBinarySensor(ErftverbandEntity, BinarySensorEntity):
+    _attr_should_poll = False
+
+
+class SourceReachableBinarySensor(ErftverbandBinarySensor):
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
-    _attr_entity_registry_visible_default = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_translation_key = "source_reachable"
+    _attr_unique_id = "erftverband_source_reachable"
+    _attr_has_entity_name = True
 
     def __init__(
         self,
         coordinator: ErftverbandCoordinator,
         station_id: str,
     ) -> None:
-        self._station_id = station_id
-        from .models import StationData
-
-        station = None
-        if coordinator.data and station_id in coordinator.data:
-            station = coordinator.data[station_id]
-        super().__init__(
-            coordinator,
-            station
-            or StationData(
-                station_id=station_id,
-                name=station_id,
-                waterbody="",
-            ),
-            unique_id_suffix="source_reachable",
-        )
+        super().__init__(coordinator, station_id)
+        self._attr_entity_registry_enabled_default = True
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, "_global")},
+            "name": "Erftverband HOWIS",
+            "manufacturer": "Erftverband",
+        }
 
     @property
     def is_on(self) -> bool:
-        return self.coordinator.source_reachable
+        data = self.coordinator.data
+        if data is None:
+            return False
+        return data.source_reachable
 
     @property
     def available(self) -> bool:
         return True
 
 
-class DataStaleSensor(ErftverbandEntity, BinarySensorEntity):
+class DataStaleBinarySensor(ErftverbandBinarySensor):
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
     _attr_translation_key = "data_stale"
 
-    def __init__(
-        self,
-        coordinator: ErftverbandCoordinator,
-        station_id: str,
-    ) -> None:
-        self._station_id = station_id
-        from .models import StationData
-
-        station = None
-        if coordinator.data and station_id in coordinator.data:
-            station = coordinator.data[station_id]
-        super().__init__(
-            coordinator,
-            station
-            or StationData(
-                station_id=station_id,
-                name=station_id,
-                waterbody="",
-            ),
-            unique_id_suffix="data_stale",
-        )
-
     @property
     def is_on(self) -> bool:
-        sd = self.station_data
-        if sd is None or sd.measured_at is None:
+        data = self.coordinator.data
+        if data is None:
             return True
-        now = datetime.now(tz=sd.measured_at.tzinfo)
-        age = now - sd.measured_at
-        threshold = timedelta(minutes=self.coordinator.stale_threshold)
-        return age > threshold
+        station = data.stations.get(self._station_id)
+        if station is None:
+            return True
+        age = station.age_minutes
+        if age is None:
+            return True
+        return self.coordinator.is_stale(age)
 
-    @property
-    def available(self) -> bool:
-        return True
 
-
-class FloodAlertSensor(ErftverbandEntity, BinarySensorEntity):
+class FloodAlertBinarySensor(ErftverbandBinarySensor):
     _attr_device_class = BinarySensorDeviceClass.SAFETY
     _attr_translation_key = "flood_alert"
 
-    def __init__(
-        self,
-        coordinator: ErftverbandCoordinator,
-        station_id: str,
-    ) -> None:
-        self._station_id = station_id
-        from .models import StationData
-
-        station = None
-        if coordinator.data and station_id in coordinator.data:
-            station = coordinator.data[station_id]
-        super().__init__(
-            coordinator,
-            station
-            or StationData(
-                station_id=station_id,
-                name=station_id,
-                waterbody="",
-            ),
-            unique_id_suffix="flood_alert",
-        )
-
     @property
     def is_on(self) -> bool:
-        sd = self.station_data
-        if sd is None:
+        data = self.coordinator.data
+        if data is None:
             return False
-        from .sensor import _compute_flood_status
+        station = data.stations.get(self._station_id)
+        if station is None:
+            return False
 
-        status = _compute_flood_status(sd)
-        return status != FloodStatus.NORMAL and status != FloodStatus.UNKNOWN
+        age = station.age_minutes
+        if age is not None and self.coordinator.is_stale(age):
+            return False
 
-    @property
-    def available(self) -> bool:
-        sd = self.station_data
-        return sd is not None
+        water_level = station.water_level_cm
+        discharge = station.discharge_m3s
+        meta = self.coordinator.get_metadata(self._station_id)
+        if meta is None:
+            return False
+
+        thresholds = meta.thresholds
+        if thresholds is None:
+            return False
+
+        for threshold in [
+            thresholds.ev_alarm_cm,
+            thresholds.ev_alarm_m3s,
+            thresholds.hq10_cm,
+            thresholds.hq10_m3s,
+            thresholds.hq100_cm,
+            thresholds.hq100_m3s,
+            thresholds.hqextrem_cm,
+            thresholds.hqextrem_m3s,
+        ]:
+            if threshold is not None:
+                if (water_level is not None and water_level >= threshold) or (
+                    discharge is not None and discharge >= threshold
+                ):
+                    return True
+
+        return False

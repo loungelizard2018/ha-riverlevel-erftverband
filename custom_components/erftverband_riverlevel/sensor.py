@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import logging
 from datetime import datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -10,20 +10,25 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
 from .const import (
-    ATTR_THRESHOLDS,
     DOMAIN,
-    FloodStatus,
+    FLOOD_STATES,
+    STATE_EV_ACTION,
+    STATE_EXTREME,
+    STATE_HQ10,
+    STATE_HQ100,
+    STATE_NORMAL,
+    STATE_UNKNOWN,
 )
 from .coordinator import ErftverbandCoordinator
 from .entity import ErftverbandEntity
-from .models import StationData
 
-_LOGGER = logging.getLogger(__name__)
+TZ_BERLIN = ZoneInfo("Europe/Berlin")
 
 
 async def async_setup_entry(
@@ -32,190 +37,237 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     coordinator: ErftverbandCoordinator = hass.data[DOMAIN][entry.entry_id]
+    station_ids: set[str] = entry.data.get("station_ids", set())
 
-    entities: list[SensorEntity] = []
-    for station_id in coordinator._station_ids:
-        entities.append(WaterLevelSensor(coordinator, station_id))
-        entities.append(DischargeSensor(coordinator, station_id))
-        entities.append(WaterLevelTrendSensor(coordinator, station_id))
-        entities.append(DischargeTrendSensor(coordinator, station_id))
-        entities.append(LastMeasurementSensor(coordinator, station_id))
-        entities.append(DataAgeSensor(coordinator, station_id))
-        entities.append(FloodStatusSensor(coordinator, station_id))
+    entities: list[ErftverbandEntity] = []
+    for sid in station_ids:
+        entities.extend(
+            [
+                WaterLevelSensor(coordinator, sid),
+                DischargeSensor(coordinator, sid),
+                WaterTrendRawSensor(coordinator, sid),
+                DischargeTrendRawSensor(coordinator, sid),
+                LastMeasurementSensor(coordinator, sid),
+                DataAgeSensor(coordinator, sid),
+                FloodStatusSensor(coordinator, sid),
+            ]
+        )
 
     async_add_entities(entities)
 
 
 class ErftverbandSensor(ErftverbandEntity, SensorEntity):
-    _sensor_type = ""
+    _attr_should_poll = False
 
-    def __init__(
-        self,
-        coordinator: ErftverbandCoordinator,
-        station_id: str,
-    ) -> None:
-        station = None
-        if coordinator.data and station_id in coordinator.data:
-            station = coordinator.data[station_id]
-        super().__init__(
-            coordinator,
-            station
-            or StationData(
-                station_id=station_id,
-                name=station_id,
-                waterbody="",
-            ),
-            unique_id_suffix=self._sensor_type,
-        )
-        self._station_id = station_id
+    @property
+    def available(self) -> bool:
+        data = self.coordinator.data
+        if data is None:
+            return False
+        station_data = data.stations.get(self._station_id)
+        if station_data is None:
+            return False
+        if station_data.age_minutes is not None and self.coordinator.is_stale(
+            station_data.age_minutes
+        ):
+            try:
+                cat = self._attr_entity_category
+            except AttributeError:
+                cat = None
+            if cat is None or cat != EntityCategory.DIAGNOSTIC:
+                return False
+        return True
 
 
 class WaterLevelSensor(ErftverbandSensor):
-    _sensor_type = "water_level"
     _attr_device_class = SensorDeviceClass.DISTANCE
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "cm"
     _attr_translation_key = "water_level"
-    _attr_suggested_display_precision = 0
 
     @property
     def native_value(self) -> StateType:
-        sd = self.station_data
-        if sd is None:
+        data = self.coordinator.data
+        if data is None:
             return None
-        return sd.water_level_cm
+        station = data.stations.get(self._station_id)
+        if station is None:
+            return None
+        return station.water_level_cm
 
 
 class DischargeSensor(ErftverbandSensor):
-    _sensor_type = "discharge"
-    _attr_device_class = SensorDeviceClass.VOLUME_FLOW_RATE
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_native_unit_of_measurement = "m\u00b3/s"
+    _attr_native_unit_of_measurement = "m³/s"
     _attr_translation_key = "discharge"
-    _attr_suggested_display_precision = 2
 
     @property
     def native_value(self) -> StateType:
-        sd = self.station_data
-        if sd is None:
+        data = self.coordinator.data
+        if data is None:
             return None
-        return sd.discharge_m3s
+        station = data.stations.get(self._station_id)
+        if station is None:
+            return None
+        return station.discharge_m3s
 
 
-class WaterLevelTrendSensor(ErftverbandSensor):
-    _sensor_type = "wl_trend"
+class WaterTrendRawSensor(ErftverbandSensor):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "cm/h"
-    _attr_translation_key = "wl_trend"
-    _attr_suggested_display_precision = 0
+    _attr_translation_key = "water_trend_raw"
 
     @property
     def native_value(self) -> StateType:
-        sd = self.station_data
-        if sd is None:
+        data = self.coordinator.data
+        if data is None:
             return None
-        return sd.wl_trend
+        station = data.stations.get(self._station_id)
+        if station is None:
+            return None
+        return station.water_trend_cm_h
 
 
-class DischargeTrendSensor(ErftverbandSensor):
-    _sensor_type = "q_trend"
+class DischargeTrendRawSensor(ErftverbandSensor):
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_native_unit_of_measurement = "m\u00b3/s/h"
-    _attr_translation_key = "q_trend"
-    _attr_suggested_display_precision = 3
+    _attr_native_unit_of_measurement = "m³/s/h"
+    _attr_translation_key = "discharge_trend_raw"
 
     @property
     def native_value(self) -> StateType:
-        sd = self.station_data
-        if sd is None:
+        data = self.coordinator.data
+        if data is None:
             return None
-        return sd.q_trend
+        station = data.stations.get(self._station_id)
+        if station is None:
+            return None
+        return station.discharge_trend_m3s_h
 
 
 class LastMeasurementSensor(ErftverbandSensor):
-    _sensor_type = "measured_at"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
-    _attr_translation_key = "measured_at"
+    _attr_translation_key = "last_measurement"
 
     @property
     def native_value(self) -> datetime | None:
-        sd = self.station_data
-        if sd is None:
+        data = self.coordinator.data
+        if data is None:
             return None
-        return sd.measured_at
+        station = data.stations.get(self._station_id)
+        if station is None or station.measured_at is None:
+            return None
+        try:
+            dt = datetime.fromisoformat(station.measured_at)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=TZ_BERLIN)
+            return dt
+        except ValueError, TypeError:
+            return None
 
 
 class DataAgeSensor(ErftverbandSensor):
-    _sensor_type = "data_age"
     _attr_device_class = SensorDeviceClass.DURATION
+    _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "min"
-    _attr_entity_registry_visible_default = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_translation_key = "data_age"
-
-    @property
-    def native_value(self) -> int | None:
-        sd = self.station_data
-        if sd is None or sd.measured_at is None:
-            return None
-        now = datetime.now(tz=sd.measured_at.tzinfo)
-        delta = now - sd.measured_at
-        return int(delta.total_seconds() // 60)
 
     @property
     def available(self) -> bool:
         return True
 
-
-def _compute_flood_status(station: StationData) -> FloodStatus:
-    wl = station.water_level_cm
-    q = station.discharge_m3s
-    th = station.thresholds
-
-    if wl is None and q is None:
-        return FloodStatus.UNKNOWN
-
-    status = FloodStatus.NORMAL
-
-    if wl is not None and th.hqextrem_w is not None and wl >= th.hqextrem_w:
-        return FloodStatus.EXTREME
-    if q is not None and th.hqextrem_q is not None and q >= th.hqextrem_q:
-        return FloodStatus.EXTREME
-
-    if wl is not None and th.hq100_w is not None and wl >= th.hq100_w:
-        return FloodStatus.HQ100
-    if q is not None and th.hq100_q is not None and q >= th.hq100_q:
-        return FloodStatus.HQ100
-
-    if wl is not None and th.hq10_w is not None and wl >= th.hq10_w:
-        return FloodStatus.HQ10
-    if q is not None and th.hq10_q is not None and q >= th.hq10_q:
-        return FloodStatus.HQ10
-
-    if wl is not None and th.ev_w is not None and wl >= th.ev_w:
-        return FloodStatus.EV_ACTION
-    if q is not None and th.ev_q is not None and q >= th.ev_q:
-        return FloodStatus.EV_ACTION
-
-    return status
+    @property
+    def native_value(self) -> StateType:
+        data = self.coordinator.data
+        if data is None:
+            return None
+        station = data.stations.get(self._station_id)
+        if station is None:
+            return None
+        return station.age_minutes
 
 
 class FloodStatusSensor(ErftverbandSensor):
-    _sensor_type = "flood_status"
     _attr_device_class = SensorDeviceClass.ENUM
-    _attr_options = list(FloodStatus)
+    _attr_options = FLOOD_STATES
     _attr_translation_key = "flood_status"
 
     @property
-    def native_value(self) -> str | None:
-        sd = self.station_data
-        if sd is None:
-            return None
-        return _compute_flood_status(sd)
+    def native_value(self) -> str:
+        data = self.coordinator.data
+        if data is None:
+            return STATE_UNKNOWN
+        station = data.stations.get(self._station_id)
+        if station is None:
+            return STATE_UNKNOWN
+
+        age = station.age_minutes
+        if age is not None and self.coordinator.is_stale(age):
+            return STATE_UNKNOWN
+
+        water_level = station.water_level_cm
+        discharge = station.discharge_m3s
+        meta = self.coordinator.get_metadata(self._station_id)
+        if meta is None:
+            return STATE_UNKNOWN
+
+        thresholds = meta.thresholds
+
+        max_state = STATE_NORMAL
+
+        if thresholds is not None:
+            if self._check_threshold(water_level, thresholds.hqextrem_cm) or self._check_threshold(
+                discharge, thresholds.hqextrem_m3s
+            ):
+                max_state = max(max_state, STATE_EXTREME, key=FLOOD_STATES.index)
+            if self._check_threshold(water_level, thresholds.hq100_cm) or self._check_threshold(
+                discharge, thresholds.hq100_m3s
+            ):
+                max_state = max(max_state, STATE_HQ100, key=FLOOD_STATES.index)
+            if self._check_threshold(water_level, thresholds.hq10_cm) or self._check_threshold(
+                discharge, thresholds.hq10_m3s
+            ):
+                max_state = max(max_state, STATE_HQ10, key=FLOOD_STATES.index)
+            if self._check_threshold(water_level, thresholds.ev_alarm_cm) or self._check_threshold(
+                discharge, thresholds.ev_alarm_m3s
+            ):
+                max_state = max(max_state, STATE_EV_ACTION, key=FLOOD_STATES.index)
+
+        return max_state
+
+    @staticmethod
+    def _check_threshold(value: float | None, threshold: float | None) -> bool:
+        if value is None or threshold is None:
+            return False
+        return value >= threshold
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        attrs = {}
-        sd = self.station_data
-        if sd is not None and sd.thresholds:
-            attrs[ATTR_THRESHOLDS] = sd.thresholds.to_dict()
+        meta = self.coordinator.get_metadata(self._station_id)
+        if meta is None or meta.thresholds is None:
+            return {}
+        t = meta.thresholds
+        attrs: dict[str, Any] = {}
+        if t.mw_cm is not None:
+            attrs["mw_cm"] = t.mw_cm
+        if t.mhw_cm is not None:
+            attrs["mhw_cm"] = t.mhw_cm
+        if t.ev_alarm_cm is not None:
+            attrs["ev_alarm_cm"] = t.ev_alarm_cm
+        if t.ev_alarm_m3s is not None:
+            attrs["ev_alarm_m3s"] = t.ev_alarm_m3s
+        if t.hq10_cm is not None:
+            attrs["hq10_cm"] = t.hq10_cm
+        if t.hq10_m3s is not None:
+            attrs["hq10_m3s"] = t.hq10_m3s
+        if t.hq100_cm is not None:
+            attrs["hq100_cm"] = t.hq100_cm
+        if t.hq100_m3s is not None:
+            attrs["hq100_m3s"] = t.hq100_m3s
+        if t.hqextrem_cm is not None:
+            attrs["hqextrem_cm"] = t.hqextrem_cm
+        if t.hqextrem_m3s is not None:
+            attrs["hqextrem_m3s"] = t.hqextrem_m3s
+        if meta.catchment_area_km2 is not None:
+            attrs["catchment_area_km2"] = meta.catchment_area_km2
         return attrs

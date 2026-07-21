@@ -1,3 +1,13 @@
 ---
-# https://developers.home-assistant.io/docs/core/integration-quality-scale
-# This integration is still under development and aims for silver.
+golden:
+  quality_scale: silver
+  requirements:
+    - "config_flow"
+    - "entity_unique_id"
+    - "entity_name_translated"
+    - "device_registry"
+    - "diagnostics"
+    - "exception_translations"
+    - "reconfig"
+    - "test_coverage"
+    - "translated_entity_names"

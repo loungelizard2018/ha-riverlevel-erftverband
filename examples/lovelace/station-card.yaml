@@ -1,89 +1,219 @@
 type: vertical-stack
 cards:
   - type: custom:button-card
-    layout: vertical
+    entity: sensor.essig_water_level
+    show_name: false
+    show_state: false
+    show_icon: false
     styles:
       card:
-        - border-radius: 12px
-        - padding: 16px
-        - box-shadow: 0 2px 8px rgba(0,0,0,0.15)
+        - background: "linear-gradient(135deg, rgba(10,14,22,.96), rgba(20,28,40,.92)), radial-gradient(circle at 20% 0%, rgba(0,150,220,.18), transparent 40%)"
+        - border: 1px solid rgba(255,255,255,.12)
+        - border-radius: 20px
+        - box-shadow: 0 12px 28px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.08)
+        - padding: 14px
+        - overflow: hidden
       grid:
-        - grid-template-areas: '"top" "middle" "bottom"'
-        - grid-template-columns: 1fr
-        - grid-template-rows: auto 1fr auto
+        - grid-template-areas: '"name name" "water date" "discharge age" "trend status"'
+        - grid-template-columns: 1fr 1fr
+        - grid-template-rows: auto
     custom_fields:
-      top:
-        - type: state-label
-          entity: sensor.essig_orbach_flood_status
-          style: |
-            paper-item { font-size: 14px; font-weight: 500; color: var(--primary-text-color); }
-      middle:
-        - type: state-label
-          entity: sensor.essig_orbach_water_level
-          style: |
-            paper-item { font-size: 36px; font-weight: 700; color: #4fc3f7; }
-      bottom:
-        - type: state-label
-          entity: sensor.essig_orbach_discharge
-          style: |
-            paper-item { font-size: 16px; color: #81deea; }
+      name: >
+        <div style="font-size:17px;font-weight:800;letter-spacing:.04em;color:#e8ecf4;margin-bottom:6px">
+          [[[
+            var s = states['sensor.essig_flood_status'].state;
+            var name = 'Essig (Orbach)';
+            if (s === 'extreme') return '⚠️ ' + name;
+            if (s === 'hq100') return '🔴 ' + name;
+            if (s === 'hq10') return '🟠 ' + name;
+            if (s === 'ev_action') return '🟡 ' + name;
+            return '🌊 ' + name;
+          ]]]
+        </div>
+      water: >
+        <div style="font-size:36px;font-weight:900;color:#4fc3f7;line-height:1">
+          <span>[[[
+            var s = states['sensor.essig_water_level'].state;
+            return (s && s !== 'unavailable' && s !== 'none') ? s : '—';
+          ]]]</span>
+          <span style="font-size:14px;font-weight:600;color:#8e9bad;margin-left:4px">cm</span>
+        </div>
+      date: >
+        <div style="text-align:right;color:#8e9bad;font-size:11px;line-height:1.4">
+          <div style="color:#b0bcca;font-size:13px">[[[
+            var m = states['sensor.essig_last_measurement'].state;
+            if (m && m !== 'unavailable') {
+              var d = new Date(m);
+              return d.toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+            }
+            return '—';
+          ]]]</div>
+          <div>Aktualität</div>
+        </div>
+      discharge: >
+        <div style="margin-top:8px">
+          <div style="font-size:11px;color:#8e9bad;font-weight:600;letter-spacing:.06em">ABFLUSS</div>
+          <div style="font-size:24px;font-weight:800;color:#81deea;line-height:1.2">
+            <span>[[[
+              var s = states['sensor.essig_discharge'].state;
+              return (s && s !== 'unavailable' && s !== 'none') ? s : '—';
+            ]]]</span>
+            <span style="font-size:12px;font-weight:600;color:#8e9bad;margin-left:2px">m³/s</span>
+          </div>
+        </div>
+      age: >
+        <div style="margin-top:8px;text-align:right">
+          <div style="font-size:11px;color:#8e9bad;font-weight:600;letter-spacing:.06em">DATENALTER</div>
+          <div style="font-size:18px;font-weight:700;color:#b0bcca;line-height:1.2">
+            <span>[[[
+              var s = states['sensor.essig_data_age'].state;
+              return (s && s !== 'unavailable') ? s + ' min' : '—';
+            ]]]</span>
+          </div>
+        </div>
+      trend: >
+        <div style="margin-top:6px;display:flex;align-items:center;gap:6px">
+          <span style="font-size:11px;color:#8e9bad;font-weight:600">TREND</span>
+          <span style="font-size:16px;font-weight:700">[[[
+            var t = states['sensor.essig_water_trend_raw'].state;
+            if (t === 'unavailable' || t === 'none' || t === '') return '—';
+            var v = parseFloat(t);
+            if (isNaN(v)) return '—';
+            if (v > 0) return '⬆ ' + t + ' cm/h';
+            if (v < 0) return '⬇ ' + t + ' cm/h';
+            return '➡ 0 cm/h';
+          ]]]</span>
+        </div>
+      status: >
+        <div style="margin-top:6px;text-align:right">
+          <span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;letter-spacing:.04em;[[[
+            var s = states['sensor.essig_flood_status'].state;
+            if (s === 'extreme') return 'background:#4a1520;color:#ff4444';
+            if (s === 'hq100') return 'background:#6b2f3a;color:#ff6b6b';
+            if (s === 'hq10') return 'background:#8b4530;color:#ff9a67';
+            if (s === 'ev_action') return 'background:#6b5f2a;color:#ffd54f';
+            if (s === 'unknown') return 'background:#5a3744;color:#ff7777';
+            return 'background:#1a3a4a;color:#4fc3f7';
+          ]]]">[[[
+            var s = states['sensor.essig_flood_status'].state;
+            if (s === 'unknown') return 'Daten veraltet';
+            if (s === 'extreme') return 'HQextrem';
+            if (s === 'hq100') return 'HQ100';
+            if (s === 'hq10') return 'HQ10';
+            if (s === 'ev_action') return 'EV-Einsatzplan';
+            return 'Normal';
+          ]]]</span>
+        </div>
     tap_action:
       action: url
-      url_path: >-
-        https://www.erftverband.de/mapserver/arcshp/flussgebiet/klima_abfluss/howis/html/pegel/Pegel_Essig_zr.html
+      url_path: "https://www.erftverband.de/mapserver/arcshp/flussgebiet/klima_abfluss/howis/html/pegel/Pegel_Essig_zr.html"
 
   - type: custom:apexcharts-card
+    experimental:
+      color_thresholds:
+        - value: 0
+          color: "#4fc3f7"
+        - value: 60
+          color: "#ffd54f"
+        - value: 144
+          color: "#ff6b6b"
     graph_span: 48h
-    span:
-      hours: 48
-    now:
-      show: true
+    show:
+      loading: true
+      last_updated: true
+    header:
+      show: false
     yaxis:
       - id: left
         min: 0
-        title:
-          text: Wasserstand (cm)
+        max: ~auto
+        decimals: 0
+        apex_config:
+          title:
+            text: "cm"
+            style:
+              color: "#8e9bad"
+              fontSize: "10px"
       - id: right
         opposite: true
-        min: 0
-        title:
-          text: Abfluss (m³/s)
+        decimals: 2
+        apex_config:
+          title:
+            text: "m³/s"
+            style:
+              color: "#8e9bad"
+              fontSize: "10px"
     series:
-      - entity: sensor.essig_orbach_water_level
+      - entity: sensor.essig_water_level
         name: Wasserstand
-        yaxis_id: left
+        type: line
+        curve: stepline
         stroke_width: 2
         color: "#4fc3f7"
-        type: line
+        unit: cm
+        yaxis_id: left
+        group_by:
+          func: avg
+          duration: 5min
         show:
-          in_header: false
-        data_generator: |-
-          return entity.attributes.history || [];
-      - entity: sensor.essig_orbach_discharge
+          legend_value: true
+        opacity: 0.9
+      - entity: sensor.essig_discharge
         name: Abfluss
-        yaxis_id: right
-        stroke_width: 2
+        type: line
+        curve: stepline
+        stroke_width: 1.5
         stroke_dash: 4
         color: "#81deea"
-        type: line
+        unit: "m³/s"
+        yaxis_id: right
+        group_by:
+          func: avg
+          duration: 5min
         show:
-          in_header: false
-        data_generator: |-
-          return entity.attributes.history || [];
-    annotations:
-      - yaxis_id: left
-        y_ref: 60
-        label:
-          text: "EV 60cm"
-          align: left
-        stroke:
-          color: "#ffb300"
-          dash: 4
-      - yaxis_id: left
-        y_ref: 144
-        label:
-          text: "HQ10 144cm"
-          align: left
-        stroke:
-          color: "#ff6d00"
-          dash: 4
+          legend_value: true
+        opacity: 0.7
+    all_series_config:
+      float_precision: 1
+    apex_config:
+      chart:
+        height: 160
+        type: line
+        zoom:
+          enabled: false
+        toolbar:
+          show: false
+        animations:
+          enabled: false
+      grid:
+        show: true
+        borderColor: "rgba(255,255,255,.06)"
+        strokeDashArray: 3
+      legend:
+        show: true
+        labels:
+          colors: "#b0bcca"
+        horizontalAlign: left
+        fontSize: "10px"
+        itemMargin:
+          horizontal: 8
+      xaxis:
+        type: datetime
+        labels:
+          datetimeUTC: false
+          style:
+            colors: "#8e9bad"
+            fontSize: "9px"
+        axisBorder:
+          show: false
+        axisTicks:
+          show: false
+      yaxis:
+        - labels:
+            style:
+              colors: "#8e9bad"
+              fontSize: "9px"
+        - labels:
+            style:
+              colors: "#8e9bad"
+              fontSize: "9px"

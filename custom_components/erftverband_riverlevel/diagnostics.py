@@ -11,64 +11,104 @@ from .coordinator import ErftverbandCoordinator
 
 
 async def async_get_config_entry_diagnostics(
-    hass: HomeAssistant, entry: ConfigEntry
+    hass: HomeAssistant,
+    entry: ConfigEntry,
 ) -> dict[str, Any]:
     coordinator: ErftverbandCoordinator = hass.data[DOMAIN][entry.entry_id]
+    data = coordinator.data
+    station_ids: set[str] = entry.data.get("station_ids", set())
+
     return {
-        "entry": {
-            "entry_id": entry.entry_id,
-            "version": entry.version,
-            "data": dict(entry.data),
-            "options": dict(entry.options),
+        "entry_id": entry.entry_id,
+        "entry_data": {
+            "station_ids": list(station_ids),
+            "scan_interval": entry.data.get("scan_interval"),
+            "stale_threshold": entry.data.get("stale_threshold"),
         },
-        "coordinator": {
-            "source_reachable": coordinator.source_reachable,
-            "cache_used": coordinator.cache_used,
-            "update_interval_seconds": (
-                coordinator.update_interval.total_seconds()
-                if coordinator.update_interval
-                else None
-            ),
-            "stale_threshold_minutes": coordinator.stale_threshold,
-            "station_ids": coordinator._station_ids,
-            "last_update": (
-                coordinator.data.get("last_update") if isinstance(coordinator.data, dict) else None
-            ),
-        },
-        "stations": {
-            sid: sd.to_dict() if hasattr(sd, "to_dict") else str(sd)
-            for sid, sd in (coordinator.data or {}).items()
+        "options": dict(entry.options),
+        "coordinator_data": data.as_dict() if data else None,
+        "metadata": {
+            sid: {
+                "station_name": meta.station_name,
+                "waterbody": meta.waterbody,
+                "catchment_area_km2": meta.catchment_area_km2,
+                "thresholds": {
+                    "mw_cm": meta.thresholds.mw_cm,
+                    "mhw_cm": meta.thresholds.mhw_cm,
+                    "ev_alarm_cm": meta.thresholds.ev_alarm_cm,
+                    "ev_alarm_m3s": meta.thresholds.ev_alarm_m3s,
+                    "hq10_cm": meta.thresholds.hq10_cm,
+                    "hq10_m3s": meta.thresholds.hq10_m3s,
+                    "hq100_cm": meta.thresholds.hq100_cm,
+                    "hq100_m3s": meta.thresholds.hq100_m3s,
+                    "hqextrem_cm": meta.thresholds.hqextrem_cm,
+                    "hqextrem_m3s": meta.thresholds.hqextrem_m3s,
+                },
+            }
+            for sid, meta in coordinator.metadata.items()
         },
     }
 
 
 async def async_get_device_diagnostics(
-    hass: HomeAssistant, entry: ConfigEntry, device: DeviceEntry
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    device: DeviceEntry,
 ) -> dict[str, Any]:
     coordinator: ErftverbandCoordinator = hass.data[DOMAIN][entry.entry_id]
-    station_id = None
+
+    station_id: str | None = None
     for identifier in device.identifiers:
-        if len(identifier) == 2 and identifier[0] == DOMAIN:
+        if identifier[0] == DOMAIN:
             station_id = identifier[1]
             break
-    station_data = None
-    if station_id and coordinator.data:
-        station_data = (
-            coordinator.data[station_id].to_dict() if station_id in coordinator.data else None
-        )
+
+    if station_id is None:
+        return {"error": "Device not found in integration"}
+
+    data = coordinator.data
+    station_data = data.stations.get(station_id) if data else None
+    meta = coordinator.get_metadata(station_id)
+
     return {
-        "device": {
-            "id": device.id,
-            "name": device.name,
-            "model": device.model,
-            "manufacturer": device.manufacturer,
-            "identifiers": list(device.identifiers),
-            "configuration_url": device.configuration_url,
-        },
         "station_id": station_id,
-        "station_data": station_data,
-        "coordinator": {
-            "source_reachable": coordinator.source_reachable,
-            "cache_used": coordinator.cache_used,
-        },
+        "measurement": {
+            "measured_at": station_data.measured_at if station_data else None,
+            "age_minutes": station_data.age_minutes if station_data else None,
+            "water_level_cm": station_data.water_level_cm if station_data else None,
+            "water_trend_cm_h": station_data.water_trend_cm_h if station_data else None,
+            "discharge_m3s": station_data.discharge_m3s if station_data else None,
+            "discharge_trend_m3s_h": station_data.discharge_trend_m3s_h if station_data else None,
+        }
+        if station_data
+        else None,
+        "metadata": {
+            "station_name": meta.station_name if meta else None,
+            "waterbody": meta.waterbody if meta else None,
+            "detail_url": meta.detail_url if meta else None,
+            "catchment_area_km2": meta.catchment_area_km2 if meta else None,
+            "thresholds": {
+                "mw_cm": meta.thresholds.mw_cm,
+                "mhw_cm": meta.thresholds.mhw_cm,
+                "ev_alarm_cm": meta.thresholds.ev_alarm_cm,
+                "ev_alarm_m3s": meta.thresholds.ev_alarm_m3s,
+                "hq10_cm": meta.thresholds.hq10_cm,
+                "hq10_m3s": meta.thresholds.hq10_m3s,
+                "hq100_cm": meta.thresholds.hq100_cm,
+                "hq100_m3s": meta.thresholds.hq100_m3s,
+                "hqextrem_cm": meta.thresholds.hqextrem_cm,
+                "hqextrem_m3s": meta.thresholds.hqextrem_m3s,
+            }
+            if meta and meta.thresholds
+            else None,
+        }
+        if meta
+        else None,
+        "source": {
+            "reachable": data.source_reachable if data else None,
+            "cache_used": data.cache_used if data else None,
+            "ok": data.ok if data else None,
+        }
+        if data
+        else None,
     }

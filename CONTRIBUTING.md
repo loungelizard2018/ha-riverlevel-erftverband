@@ -1,34 +1,32 @@
 # Contributing
 
-## Development Setup
+## Setup
 
 ```bash
-uv sync
+uv venv
+source .venv/bin/activate
+uv pip install -e ".[dev]"
 ```
 
-## Code Quality
+## Code Style
+
+This project uses Ruff for linting and formatting:
 
 ```bash
 uv run ruff check .
 uv run ruff format --check .
 ```
 
-## Running Tests
+## Testing
 
 ```bash
-uv run pytest -vv
+uv run pytest -vv --cov=custom_components/erftverband_riverlevel --cov-report=term-missing
 ```
 
-## Pre-commit Checklist
-
-1. Run `git diff --check` for whitespace errors
-2. Run `uv run ruff check .`
-3. Run `uv run ruff format --check .`
-4. Run `uv run pytest -vv --cov=custom_components/erftverband_riverlevel`
+Tests use offline HTML fixtures in `tests/fixtures/`. No network access required.
 
 ## Pull Requests
 
-- Target the `main` branch
-- Keep changes focused and atomic
-- Update tests for new functionality
-- Document breaking changes
+- Run all checks before submitting.
+- Add tests for new functionality.
+- Keep `pyproject.toml` updated.

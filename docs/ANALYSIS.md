@@ -1,160 +1,100 @@
-# Analyse der Erftverband-HOWIS-Datenquelle
+# Analysis: Erftverband HOWIS Live Data Source
 
-## Übersicht
+## Overview Page
 
-Der Erftverband betreibt das HOWIS-System (Hochwasserinformationssystem) unter:
+**URL:** `https://www.erftverband.de/mapserver/arcshp/flussgebiet/klima_abfluss/howis/html/ev_w_tab_aktwerte.html`
 
-```
-https://www.erftverband.de/mapserver/arcshp/flussgebiet/klima_abfluss/howis/
-```
+**Structure:** Single HTML `<table>` containing all stations grouped by river section.
 
-Die Daten werden auf zwei Arten bereitgestellt:
+**Columns (12 data columns + 1 station name column):**
+1. Pegel (Gewässer) – station name with waterbody in parentheses, contains `<a href>` to detail page
+2. letzter Messwert – datetime (DD.MM.YY HH:MM)
+3. Wasserstand [cm] – Wert
+4. Wasserstand Tendenz – cm/h
+5. Abfluss [m³/s] – Wert
+6. Abfluss Tendenz – m³/s/h
+7. MQ – Mittelwasserabfluss
+8. HQ1
+9. HQ2
+10. HQ10
+11. HQ100
+12. HQExtrem
 
-1. **Übersichtsseite** (`ev_w_tab_aktwerte.html`): Sammeltabelle aller Pegel
-2. **Detailseiten** (`pegel/Pegel_{Name}_zr.html`): Einzelseite pro Pegel
+**Station ID extraction:**
+- Each station row has an `<a href="./pegel/Pegel_{STATION_ID}_zr.html">`
+- The station_id is the URL-safe identifier (e.g. `Essig`, `Kirchheim`, `Moeschemer_M`)
+- This is used as the stable technical identifier
 
-## Übersichtsseite
+**All 28 identified stations:**
 
-Enthält eine einzige HTML-Tabelle mit allen 32 Pegeln, gruppiert nach Gewässerabschnitten:
+| Station ID | Station Name | Waterbody | Details |
+|---|---|---|---|
+| Schoenau | Schönau | Erft | full data |
+| Eicherscheid | Eicherscheid | Erft | full data |
+| Moeschemer_M | Möschemer Mühle | Eschweilerbach | umlaut in URL |
+| Arloff | Arloff | Erft | full data |
+| Hausweiler | Hausweiler | Erft | full data |
+| Horchheim | Horchheim | Erft | full data |
+| Vussem | Vussem | Veybach | missing all HQ thresholds |
+| Burg_Veynau | Burg Veynau | Veybach | full data |
+| Kirchheim | Kirchheim | Steinbach | full data |
+| Essig | Essig | Orbach | full data |
+| Morenhoven | Morenhoven | Swist | full data |
+| Weilerswist | Weilerswist | Swist | full data |
+| Schwerfen | Schwerfen | Rotbach | full data |
+| Wichterich | Wichterich | Bleibach | missing all HQ thresholds |
+| Muelheim | Mülheim | Rotbach | umlaut in URL |
+| Niederberg | Niederberg | Rotbach | only water level, no discharge |
+| Friesheim | Friesheim | Rotbach | full data |
+| Bliesheim | Bliesheim | Erft | full data |
+| Horrem | Horrem | Kleine Erft | missing HQ10/HQ100/HQExtrem |
+| Gymnich | Gymnich | Erft | full data |
+| Moedrath | Mödrath | Erft | umlaut in URL |
+| Fuessenich_OW | Füssenich OW | Neffelbach | umlaut, special notes, missing HQ |
+| Fuessenich | Füssenich | Neffelbach | umlaut, missing HQ100/HQExtrem |
+| Bessenich | Bessenich | Neffelbach | full data |
+| Langenich | Langenich | Neffelbach | full data |
+| Zieverich | Zieverich | Erft | water level only (no discharge) |
+| Glesch | Glesch | Erft | full data |
+| Bedburg | Bedburg | Erft | full data |
+| Neubrueck | Neubrück | Erft | umlaut in URL |
+| Gill | Gill | Gillbach | full data |
+| Anstel | Anstel | Gillbach | full data |
+| Glehn | Glehn | Jüchener Bach | missing HQ10/HQ100/HQExtrem |
 
-| Abschnitt | Anzahl Pegel |
-|-----------|-------------|
-| Obere Erft | 6 |
-| Veybach | 2 |
-| Swist | 4 |
-| Rotbach | 5 |
-| Mittlere Erft | 4 |
-| Neffelbach | 4 |
-| Untere Erft | 4 |
-| Gillbach | 2 |
-| Jüchener Bach | 1 |
+## Detail Pages
 
-### Tabellenspalten
+**URL Pattern:** `https://www.erftverband.de/mapserver/arcshp/flussgebiet/klima_abfluss/howis/html/pegel/Pegel_{STATION_ID}_zr.html`
 
-| Spalte | Inhalt | Format |
-|--------|--------|--------|
-| 0 | Pegel (Gewässer) | Als `<a href>`-Link |
-| 1 | Gesetzl. Zeit | `DD.MM.YY HH:MM` |
-| 2 | Wasserstand [cm] | Ganzzahl, space-padded |
-| 3 | Tendenz W [cm] | Vorzeichen + space-padded Zahl |
-| 4 | Abfluss [m³/s] | Dezimal mit Punkt |
-| 5 | Tendenz Q [m³/s/h] | Dezimal mit Punkt |
-| 6 | MQ | Dezimal |
-| 7 | HQ1 | Dezimal mit **Komma** |
-| 8 | HQ2 | Dezimal mit **Komma** |
-| 9 | HQ10 | Dezimal |
-| 10 | HQ100 | Dezimal |
-| 11 | HQExtrem | Dezimal |
+**Structure per page:**
+1. Stammdaten table: Pegel name, Betreiber, Gewässer, Rechtswert, Hochwert, Einzugsgebiet (km²)
+2. Hauptwerte table: MNW/MNQ, MW/MQ, MHW/MHQ, HQ1, HQ2 with W[cm] and Q[m³/s]
+3. Hochwasser-Kategorien table: EV-Einsatzplan, HQ10, HQ100, HQExtrem thresholds
+4. Aktuelle Werte table: datetime, water level, discharge, trends, Stauwert
 
-### Stations-ID aus href
+**Reliable metadata from detail pages:**
+- Station name and waterbody (also in overview, redundant)
+- Catchment area (km²) – not always available
+- Threshold values: MW_cm, MHW_cm, EV-Einsatzplan (W+Q), HQ10 (W+Q), HQ100 (W+Q), HQExtrem (W+Q)
+- Missing thresholds are shown as "-" or "k.A."
 
-Jeder Pegel ist über ein `<a href>`-Tag verlinkt:
+**Edge cases confirmed:**
+- Zieverich: water level only, discharge = "-", all thresholds = "-" or "k.A."
+- Vussem: water level + discharge available, but no HQ thresholds at all
+- Niederberg: water level only, no discharge, no thresholds
+- Fuessenich_OW: water level + discharge (0.00), only EV-Einsatzplan threshold, discharge trend = "-"
+- Moeschemer_M: URL-safe name with underscores, Betreiber field contains HTML link
+- Mödrath/Mülheim/Füssenich/Neubrück: URL-safe names (umlauts replaced in URL)
 
-```html
-<a href="./pegel/Pegel_Essig_zr.html">Essig (Orbach)</a>
-```
+## Key Findings
 
-Die ID wird aus dem href extrahiert: Alles zwischen `Pegel_` und `_zr.html`:
-
-| href | Station ID |
-|------|-----------|
-| `./pegel/Pegel_Essig_zr.html` | `Essig` |
-| `./pegel/Pegel_Moeschemer_M_zr.html` | `Moeschemer_M` |
-| `./pegel/Pegel_Fuessenich_OW_zr.html` | `Fuessenich_OW` |
-| `./pegel/Pegel_Neubrueck_zr.html` | `Neubrueck` |
-
-Besonderheiten:
-- Umlaute werden transliteriert: `ö` → `oe`, `ü` → `ue`, `ß` → `ss`
-- Namenszusätze wie `_OW` (Oberwasser) bleiben in der ID
-- `_M` (Möschemer Mühle) bleibt in der ID
-- Die ID wird nie als `int` verwendet, immer als String.
-
-### Zahlenformate
-
-Die HOWIS-Seite mischt **beide** Dezimaltrennzeichen:
-
-| Beispiel | Tatsächlicher Wert | Erkanntes Muster |
-|----------|-------------------|------------------|
-| `2,0` | 2.0 | Komma = Dezimal |
-| `12.4` | 12.4 | Punkt = Dezimal |
-| `0.00` | 0.0 | Punkt = Dezimal |
-| `84,2` | 84.2 | Komma = Dezimal |
-| `215` | 215 | Ganzzahl |
-
-Regel: Das **zuletzt** auftretende Trennzeichen (`,` oder `.`) ist das
-Dezimaltrennzeichen. Dies wird durch `parse_german_number()` umgesetzt.
-
-### Fehlende Werte
-
-- `-` (einfacher Bindestrich): Pegel ohne Abfluss (Niederberg, Zieverich)
-- ` - ` (Leerzeichen-Bindestrich-Leerzeichen): Fehlende HQ-Werte (Vussem, Wichterich,
-  Glehn)
-- `k.A.` (Detailseite): "keine Angabe", z. B. Niederberg ohne Q-Werte
-
-## Detailseiten
-
-Eine Detailseite enthält:
-
-### Stammdaten (immer vorhanden)
-
-| Feld | Beispiel | Typ |
-|------|----------|-----|
-| Pegel | Essig | String |
-| Betreiber | Erftverband | String |
-| Gewässer | Orbach | String |
-| Rechtswert | 2563036 | int |
-| Hochwert | 5613930 | int |
-| Einzugsgebiet | 41,1 | float (Komma!) |
-
-### Hauptwerte
-
-| Kennung | W [cm] | Q [m³/s] |
-|---------|--------|-----------|
-| MNW/MNQ | 0 | 0.001 |
-| MW/MQ | 15 | 0.12 |
-| MHW/MHQ | 82 | 9.53 |
-| HQ1 | — | 2,0 (Komma!) |
-| HQ2 | — | 3,0 (Komma!) |
-
-### Hochwasser-Kategorien (Schwellenwerte)
-
-| Kategorie | W [cm] | Q [m³/s] | Essig | Kirchheim | Niederberg |
-|-----------|--------|-----------|-------|-----------|------------|
-| EV-Einsatzplan | 60 | 1.6 | ✅ | ✅ | k.A. |
-| HQ10 | 144 | 12.4 | ✅ | ✅ | - |
-| HQ100 | - | 78 | W fehlt | ✅ | - |
-| HQExtrem | - | 215 | W fehlt | W fehlt | - |
-
-**Wichtig**: Nicht alle Stationen haben vollständige Schwellenwerte. Jeder Wert
-**muss** einzeln auf `None` geprüft werden.
-
-### Aktuelle Werte
-
-| Zeile | W [cm] | Q [m³/s] |
-|-------|--------|-----------|
-| Datum/Zeit | 0 | 0.00 |
-| Tendenz | -14 | -0.000 |
-| Stauwert |  0.4 | — |
-
-## Edge Cases
-
-1. **Reine Wasserstandsstationen** (Niederberg, Zieverich): Alle Q-Werte sind `-`
-   oder `k.A.`. Sensoren für Abfluss müssen `None` anzeigen, nicht 0.
-2. **Fehlende Schwellenwerte**: Essig hat kein HQ100_W und HQExtrem_W. Status kann
-   nur anhand Q berechnet werden.
-3. **Vussem/Wichterich**: Alle HQ-Werte sind `-`. Keine Schwellen verfügbar.
-4. **Umlaute**: HTML-Entities (`&auml;`, `&ouml;`, `&uuml;`) werden in den Links als
-   ASCII-Umschrift verwendet.
-5. **Zahlenformat-Mix**: HQ1/HQ2 verwenden Komma, alles andere Punkt.
-6. **Datenstand**: Einzelne Pegel können bis zu 1 Stunde älter sein als der
-   Seitenstand.
-7. **Stauwert**: Zusätzliche Zeile in den aktuellen Werten, kein Messwert.
-8. **Betreiber**: Kirchheim wird von e-regio betrieben, alle anderen vom Erftverband.
-
-## Stabile ID-Strategie
-
-Jeder Pegel erhält eine stabile textuelle ID aus dem href-Attribut:
-- Extraktion: `Pegel_{ID}_zr.html` → `{ID}`
-- Diese ID ändert sich nur, wenn der Erftverband die URL-Struktur ändert
-- Keine Abhängigkeit von der Anzeigeposition in der Tabelle
-- Keine Abhängigkeit vom Stationsnamen (der sich theoretisch ändern könnte)
+1. **Stable station ID** is extracted from `<a href="./pegel/Pegel_{ID}_zr.html">` – never from station name alone
+2. **One request** to the overview page retrieves all current measurements for all stations
+3. **Detail pages** are only needed for metadata (thresholds, catchment area)
+4. **Missing thresholds** are common – must be handled as `None`, never as `0`
+5. **Water level only** stations (Zieverich, Niederberg) have no discharge data
+6. **German number format** with comma as decimal separator, points for thousands
+7. **Datetime format**: `DD.MM.YY HH:MM` or `DD.MM.YYYY HH:MM`, Europe/Berlin timezone
+8. **Trend values** can have leading spaces or `+` signs
+9. **Negative trends** with spaces: `- 14` should be parsed as -14
+10. **HTML entities** are used for special characters (ä=ä, ü=ü, etc.)

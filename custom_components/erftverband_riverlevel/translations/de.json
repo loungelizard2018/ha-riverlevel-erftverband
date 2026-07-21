@@ -2,42 +2,34 @@
   "config": {
     "step": {
       "user": {
-        "title": "Erftverband Pegelst\u00e4nde",
-        "description": "W\u00e4hle einen oder mehrere Pegel zur \u00dcberwachung aus.",
+        "title": "Erftverband HOWIS – Pegelauswahl",
+        "description": "Wähle einen oder mehrere Pegel aus der Liste aus.",
         "data": {
-          "stations": "Pegel"
+          "station_ids": "Pegel",
+          "scan_interval": "Aktualisierungsintervall (Sekunden)",
+          "stale_threshold": "Veraltet-Schwelle (Minuten)"
         }
       }
     },
     "error": {
-      "at_least_one": "Bitte w\u00e4hle mindestens einen Pegel aus."
+      "cannot_connect": "Verbindung zum Erftverband HOWIS fehlgeschlagen.",
+      "invalid_station": "Ausgewählter Pegel wurde nicht gefunden.",
+      "no_stations": "Mindestens ein Pegel muss ausgewählt werden.",
+      "unknown": "Ein unerwarteter Fehler ist aufgetreten."
     },
     "abort": {
-      "already_configured": "Diese Integration ist bereits eingerichtet.",
-      "cannot_connect": "Keine Verbindung zum Erftverband-Server. Fehler: {error}",
-      "no_stations_found": "Auf der Erftverband-Seite wurden keine Pegel gefunden."
+      "already_configured": "Diese Datenquelle ist bereits eingerichtet."
     }
   },
   "options": {
     "step": {
-      "stations": {
-        "title": "Pegelauswahl",
-        "description": "Pegel hinzuf\u00fcgen oder entfernen.",
+      "init": {
+        "title": "Erftverband HOWIS – Optionen",
         "data": {
-          "stations": "Pegel"
-        }
-      },
-      "settings": {
-        "title": "Update-Einstellungen",
-        "description": "Aktualisierungsintervall und Schwellwert f\u00fcr veraltete Daten konfigurieren.",
-        "data": {
-          "update_interval": "Aktualisierungsintervall (Sekunden, 60\u20133600)",
-          "stale_threshold": "Veraltet-Schwelle (Minuten, 15\u20131440)"
+          "scan_interval": "Aktualisierungsintervall (Sekunden, 60–3600)",
+          "stale_threshold": "Veraltet-Schwelle (Minuten, 15–1440)"
         }
       }
-    },
-    "error": {
-      "at_least_one": "Bitte w\u00e4hle mindestens einen Pegel aus."
     }
   },
   "entity": {
@@ -48,13 +40,13 @@
       "discharge": {
         "name": "Abfluss"
       },
-      "wl_trend": {
-        "name": "Wasserstand-Tendenz"
+      "water_trend_raw": {
+        "name": "Wasserstandstrend"
       },
-      "q_trend": {
-        "name": "Abfluss-Tendenz"
+      "discharge_trend_raw": {
+        "name": "Abflusstrend"
       },
-      "measured_at": {
+      "last_measurement": {
         "name": "Letzte Messung"
       },
       "data_age": {

@@ -2,42 +2,34 @@
   "config": {
     "step": {
       "user": {
-        "title": "Erftverband River Levels",
-        "description": "Select one or more gauging stations to monitor.",
+        "title": "Erftverband HOWIS – Gauge Selection",
+        "description": "Select one or more gauging stations from the list.",
         "data": {
-          "stations": "Gauging Stations"
+          "station_ids": "Gauging Stations",
+          "scan_interval": "Update Interval (seconds)",
+          "stale_threshold": "Stale Threshold (minutes)"
         }
       }
     },
     "error": {
-      "at_least_one": "Please select at least one station."
+      "cannot_connect": "Failed to connect to Erftverband HOWIS.",
+      "invalid_station": "Selected gauging station was not found.",
+      "no_stations": "At least one gauging station must be selected.",
+      "unknown": "An unexpected error occurred."
     },
     "abort": {
-      "already_configured": "This integration is already configured.",
-      "cannot_connect": "Could not connect to the Erftverband server. Please try again later. Error: {error}",
-      "no_stations_found": "No stations could be found on the Erftverband page."
+      "already_configured": "This data source is already configured."
     }
   },
   "options": {
     "step": {
-      "stations": {
-        "title": "Station Selection",
-        "description": "Add or remove stations.",
+      "init": {
+        "title": "Erftverband HOWIS – Options",
         "data": {
-          "stations": "Gauging Stations"
-        }
-      },
-      "settings": {
-        "title": "Update Settings",
-        "description": "Configure update interval and stale data thresholds.",
-        "data": {
-          "update_interval": "Update interval (seconds, 60-3600)",
-          "stale_threshold": "Stale threshold (minutes, 15-1440)"
+          "scan_interval": "Update Interval (seconds, 60–3600)",
+          "stale_threshold": "Stale Threshold (minutes, 15–1440)"
         }
       }
-    },
-    "error": {
-      "at_least_one": "Please select at least one station."
     }
   },
   "entity": {
@@ -48,13 +40,13 @@
       "discharge": {
         "name": "Discharge"
       },
-      "wl_trend": {
+      "water_trend_raw": {
         "name": "Water Level Trend"
       },
-      "q_trend": {
+      "discharge_trend_raw": {
         "name": "Discharge Trend"
       },
-      "measured_at": {
+      "last_measurement": {
         "name": "Last Measurement"
       },
       "data_age": {
@@ -67,7 +59,7 @@
           "ev_action": "EV Action",
           "hq10": "HQ10",
           "hq100": "HQ100",
-          "extreme": "Extreme",
+          "extreme": "HQ Extreme",
           "unknown": "Unknown"
         }
       }

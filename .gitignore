@@ -1,11 +1,9 @@
-# Python
+# Byte-compiled
 __pycache__/
 *.py[cod]
-*.egg-info/
-dist/
-*.egg
+*$py.class
 
-# Virtual environments
+# Virtual environment
 .venv/
 venv/
 env/
@@ -18,16 +16,29 @@ env/
 .DS_Store
 Thumbs.db
 
-# Test artifacts
-.coverage
+# Coverage
 htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+
+# Pytest
 .pytest_cache/
+test_results/
 
-# HA
-secrets.yaml
+# Ruff
+.ruff_cache/
+
+# Distribution
+dist/
+*.egg-info/
+
+# Home Assistant config
+config/
 *.db
-*.log
+*.db-shm
+*.db-wal
 
-# Runtime
-*.pid
-*.sock
+# Logs
+*.log

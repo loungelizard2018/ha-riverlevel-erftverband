@@ -1,93 +1,90 @@
 # Erftverband River Levels
 
-[![HACS Validation](https://github.com/loungelizard2018/ha-riverlevel-erftverband/actions/workflows/validate.yml/badge.svg)](https://github.com/loungelizard2018/ha-riverlevel-erftverband/actions/workflows/validate.yml)
+[![Validate](https://github.com/loungelizard2018/ha-riverlevel-erftverband/actions/workflows/validate.yml/badge.svg)](https://github.com/loungelizard2018/ha-riverlevel-erftverband/actions/workflows/validate.yml)
 [![Hassfest](https://github.com/loungelizard2018/ha-riverlevel-erftverband/actions/workflows/hassfest.yml/badge.svg)](https://github.com/loungelizard2018/ha-riverlevel-erftverband/actions/workflows/hassfest.yml)
 [![Tests](https://github.com/loungelizard2018/ha-riverlevel-erftverband/actions/workflows/tests.yml/badge.svg)](https://github.com/loungelizard2018/ha-riverlevel-erftverband/actions/workflows/tests.yml)
 
-Home Assistant-Integration für die Überwachung von Wasserstand und Abfluss der
-Pegel des Erftverbands (HOWIS).
+Home Assistant integration for real-time water levels and discharge of Erftverband gauging stations in North Rhine-Westphalia, Germany.
+
+Data source: [Erftverband HOWIS](https://www.erftverband.de/mapserver/arcshp/flussgebiet/klima_abfluss/howis/html/ev_w_tab_aktwerte.html)
 
 ## Installation
 
-### HACS (Custom Repository)
+### HACS (recommended)
 
-1. Installiere [HACS](https://hacs.xyz/)
-2. Füge dieses Repository als Custom Repository hinzu:
+1. Add this repository as a custom repository in HACS:
    - URL: `https://github.com/loungelizard2018/ha-riverlevel-erftverband`
-   - Kategorie: Integration
-3. Klicke auf "Installieren"
+   - Category: Integration
+2. Click "Install"
+3. Restart Home Assistant
 
-### Manuell
+### Manual
 
-Kopiere `custom_components/erftverband_riverlevel/` in dein
-Home Assistant `config/custom_components/` Verzeichnis.
+1. Copy `custom_components/erftverband_riverlevel/` into your Home Assistant `custom_components/` directory
+2. Restart Home Assistant
 
-## Einrichtung
+## Setup
 
-1. Gehe zu **Einstellungen → Geräte & Dienste → Integration hinzufügen**
-2. Suche nach **Erftverband River Levels**
-3. Wähle einen oder mehrere Pegel aus
-4. Bestätige
+1. Go to **Settings → Devices & Services → Add Integration**
+2. Search for "Erftverband River Levels"
+3. Select one or more gauging stations from the list
+4. Configure update interval (default: 300s) and stale threshold (default: 180 min)
 
-## Pegelauswahl
+### Changing the selection
 
-Du kannst beliebig viele Pegel gleichzeitig auswählen. Jeder ausgewählte Pegel
-erzeugt ein eigenes Gerät mit folgenden Sensoren:
+- **Reconfigure:** Add or remove stations without deleting the config entry
+- **Options:** Change update interval and stale threshold
 
-- Wasserstand (cm)
-- Abfluss (m³/s)
-- Wasserstand-Tendenz (cm/h)
-- Abfluss-Tendenz (m³/s/h)
-- Letzte Messung (Timestamp)
-- Datenalter (Minuten)
-- Hochwasserstatus (Normal / EV-Einsatzplan / HQ10 / HQ100 / HQextrem)
-- Quelle erreichbar (binär)
-- Daten veraltet (binär)
-- Hochwasseralarm (binär, aktiv ab EV-Einsatzplan)
+## Entities
 
-## Auswahl ändern
+Each selected station creates:
 
-Nach der Einrichtung kannst du die Pegelauswahl über **Konfigurieren** ändern.
+### Sensors
+| Entity | Unit | Description |
+|---|---|---|
+| Water Level | cm | Current water level |
+| Discharge | m³/s | Current discharge |
+| Water Level Trend | cm/h | Trend of water level change |
+| Discharge Trend | m³/s/h | Trend of discharge change |
+| Last Measurement | (timestamp) | Time of last measurement |
+| Data Age | min | Age of the measurement data |
+| Flood Status | (enum) | `normal`, `ev_action`, `hq10`, `hq100`, `extreme`, `unknown` |
 
-## Entitäten
+### Binary Sensors
+| Entity | Description |
+|---|---|
+| Source Reachable | Whether the HOWIS server is reachable |
+| Data Stale | Whether data exceeds the stale threshold |
+| Flood Alert | On when flood status ≥ ev_action |
 
-Jeder Pegel erzeugt ein Gerät (Device) mit Identifier `(DOMAIN, station_id)`.
-Die Entitäten nutzen `has_entity_name = true` und haben übersetzte Namen.
+## Cache and Stale Behavior
 
-## Cache- und Stale-Verhalten
-
-- Bei Ausfall der Live-Quelle wird der letzte gültige Messwert aus dem Cache
-  verwendet.
-- Das Datenalter wird automatisch neu berechnet.
-- Original-Messzeitpunkte bleiben erhalten.
-- Sensoren melden sich als "veraltet", wenn die Daten älter als die
-  konfigurierte Schwelle sind.
+- On live fetch failure, the last good data is served from cache
+- Original measurement timestamps are preserved
+- Data age is recalculated against current time
+- `source_reachable` is set to `false`
+- No values or timestamps are fabricated
 
 ## Diagnostics
 
-Wenn du Unterstützung benötigst, erstelle bitte einen Diagnostics-Export
-über das Gerätemenü in Home Assistant und füge ihn deinem Issue bei.
+Go to **Settings → Devices & Services → ... → System Health → Diagnostics** to generate a diagnostics dump for debugging.
 
 ## Debug Logging
 
 ```yaml
 logger:
+  default: warning
   logs:
     custom_components.erftverband_riverlevel: debug
 ```
 
-## Datenquelle
+## Data Source
 
-Diese Integration nutzt die öffentlich zugänglichen Messdaten des
-Erftverbands HOWIS-Systems:
+This integration uses the public [Erftverband HOWIS](https://www.erftverband.de/mapserver/arcshp/flussgebiet/klima_abfluss/howis/html/ev_w_tab_aktwerte.html) web pages. All data is provided by the [Erftverband](https://www.erftverband.de).
 
-- [Übersichtsseite](https://www.erftverband.de/mapserver/arcshp/flussgebiet/klima_abfluss/howis/html/ev_w_tab_aktwerte.html)
+## Disclaimer
 
-## Haftungsausschluss
-
-- Diese Integration steht in **keiner offiziellen Partnerschaft** mit dem
-  Erftverband.
-- Die bereitgestellten Daten dienen **ausschließlich zu Informationszwecken**.
-- Diese Integration ist **kein Ersatz für ein offizielles
-  Hochwasserwarnsystem**.
-- Im Hochwasserfall informiere dich bitte über offizielle Kanäle.
+- This integration is **not** an official product of the Erftverband
+- There is **no partnership** with the Erftverband
+- This is **not a replacement** for official flood warning systems
+- Always consult official sources for flood warnings and emergency information
