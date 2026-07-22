@@ -1,0 +1,91 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Erftverband HOWIS – Gauge Selection",
+        "description": "Select one or more gauging stations from the list.",
+        "data": {
+          "station_ids": "Gauging Stations",
+          "scan_interval": "Update Interval",
+          "stale_threshold": "Stale Threshold",
+          "load_all_stations": "Load All Available Gauges"
+        },
+        "data_description": {
+          "scan_interval": "Time between two HOWIS requests in seconds.",
+          "stale_threshold": "Age in minutes after which measurement data is considered stale.",
+          "load_all_stations": "Automatically loads all currently available HOWIS gauges. Visible gauges can then be selected per dashboard card."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to Erftverband HOWIS.",
+      "invalid_station": "Selected gauging station was not found.",
+      "no_stations": "At least one gauging station must be selected.",
+      "unknown": "An unexpected error occurred."
+    },
+    "abort": {
+      "already_configured": "This data source is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Erftverband HOWIS – Options",
+        "data": {
+          "load_all_stations": "Load All Available Gauges",
+          "scan_interval": "Update Interval",
+          "stale_threshold": "Stale Threshold"
+        },
+        "data_description": {
+          "load_all_stations": "Automatically loads all currently available HOWIS gauges.",
+          "scan_interval": "Time between two HOWIS requests in seconds.",
+          "stale_threshold": "Age in minutes after which measurement data is considered stale."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "water_level": {
+        "name": "Water Level"
+      },
+      "discharge": {
+        "name": "Discharge"
+      },
+      "water_trend_raw": {
+        "name": "Water Level Trend"
+      },
+      "discharge_trend_raw": {
+        "name": "Discharge Trend"
+      },
+      "last_measurement": {
+        "name": "Last Measurement"
+      },
+      "data_age": {
+        "name": "Data Age"
+      },
+      "flood_status": {
+        "name": "Flood Status",
+        "state": {
+          "normal": "Normal",
+          "ev_action": "EV Action",
+          "hq10": "HQ10",
+          "hq100": "HQ100",
+          "extreme": "HQ Extreme",
+          "unknown": "Unknown"
+        }
+      }
+    },
+    "binary_sensor": {
+      "source_reachable": {
+        "name": "Source Reachable"
+      },
+      "data_stale": {
+        "name": "Data Stale"
+      },
+      "flood_alert": {
+        "name": "Flood Alert"
+      }
+    }
+  }
+}
