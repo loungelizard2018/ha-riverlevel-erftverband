@@ -2,12 +2,18 @@
   "config": {
     "step": {
       "user": {
-        "title": "Erftverband HOWIS – Gauge Selection",
+        "title": "Erftverband HOWIS \u2013 Gauge Selection",
         "description": "Select one or more gauging stations from the list.",
         "data": {
           "station_ids": "Gauging Stations",
-          "scan_interval": "Update Interval (seconds)",
-          "stale_threshold": "Stale Threshold (minutes)"
+          "scan_interval": "Update Interval",
+          "stale_threshold": "Stale Threshold",
+          "load_all_stations": "Load All Available Gauges"
+        },
+        "data_description": {
+          "scan_interval": "Time between two HOWIS requests in seconds.",
+          "stale_threshold": "Age in minutes after which measurement data is considered stale.",
+          "load_all_stations": "Automatically loads all currently available HOWIS gauges. Visible gauges can then be selected per dashboard card."
         }
       }
     },
@@ -24,10 +30,16 @@
   "options": {
     "step": {
       "init": {
-        "title": "Erftverband HOWIS – Options",
+        "title": "Erftverband HOWIS \u2013 Options",
         "data": {
-          "scan_interval": "Update Interval (seconds, 60–3600)",
-          "stale_threshold": "Stale Threshold (minutes, 15–1440)"
+          "load_all_stations": "Load All Available Gauges",
+          "scan_interval": "Update Interval",
+          "stale_threshold": "Stale Threshold"
+        },
+        "data_description": {
+          "load_all_stations": "Automatically loads all currently available HOWIS gauges.",
+          "scan_interval": "Time between two HOWIS requests in seconds.",
+          "stale_threshold": "Age in minutes after which measurement data is considered stale."
         }
       }
     }

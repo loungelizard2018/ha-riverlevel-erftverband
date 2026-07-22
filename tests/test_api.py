@@ -138,6 +138,14 @@ class TestOverviewPage:
         assert "Muelheim" in descriptors
         assert "Fuessenich_OW" in descriptors
 
+    def test_arloff_descriptor_waterbody(self, overview_html):
+        """Arloff waterbody must be 'Erft' from the text in parentheses."""
+        descriptors = extract_station_descriptors(overview_html)
+        arloff = descriptors.get("Arloff")
+        assert arloff is not None
+        assert arloff.station_name == "Arloff"
+        assert arloff.waterbody == "Erft"
+
         essig = descriptors["Essig"]
         assert isinstance(essig, StationDescriptor)
         assert essig.station_name == "Essig"

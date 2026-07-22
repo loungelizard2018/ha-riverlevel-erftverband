@@ -42,3 +42,7 @@ config/
 
 # Logs
 *.log
+
+# Temporary image processing (not committed)
+/tmp/
+/tmp.*

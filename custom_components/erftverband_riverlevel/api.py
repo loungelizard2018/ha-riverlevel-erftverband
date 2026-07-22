@@ -26,11 +26,11 @@ def parse_german_number(raw: str | None) -> float | None:
     s = raw.strip().replace("\xa0", " ").replace("&nbsp;", " ").replace("&thinsp;", " ")
     s = s.replace("\u2009", " ")
     s = re.sub(r"\s+", " ", s)
-    if not s or s in ("-", "\u2014", "\u2013", "", "---", "k.A."):
+    if s is None or s in ("-", "\u2014", "\u2013", "", "---", "k.A."):
         return None
     s = re.sub(r"([+-])\s+", r"\1", s)
     s = re.sub(r"[^\d,.\-]", "", s)
-    if not s or s in ("-", "\u2014", "\u2013"):
+    if s is None or s in ("-", "\u2014", "\u2013", ""):
         return None
     has_dot = "." in s
     has_comma = "," in s
@@ -165,6 +165,18 @@ def _extract_hrefs(html_content: str) -> dict[str, str]:
     return hrefs
 
 
+def _find_matching_station_id(first_cell_normalized: str, hrefs: dict[str, str]) -> str | None:
+    best: str | None = None
+    best_len = 0
+    for sid in hrefs:
+        normalized_sid = _normalize_station_name(sid)
+        if re.search(rf"\b{re.escape(normalized_sid)}\b", first_cell_normalized):
+            if len(normalized_sid) > best_len:
+                best = sid
+                best_len = len(normalized_sid)
+    return best
+
+
 def _is_header_or_section_row(row: list[str]) -> bool:
     if not row:
         return True
@@ -250,11 +262,7 @@ def parse_overview_page(
             first_cell = row[0].strip()
             first_cell_normalized = _normalize_station_name(first_cell)
 
-            station_id: str | None = None
-            for sid in hrefs:
-                if _normalize_station_name(sid) in first_cell_normalized:
-                    station_id = sid
-                    break
+            station_id = _find_matching_station_id(first_cell_normalized, hrefs)
 
             if station_id is None:
                 continue
@@ -421,7 +429,7 @@ def _extract_thresholds(table_rows: list[list[str]]) -> StationThresholds:
         return None
 
     return StationThresholds(
-        mw_cm=get("mw / mq_w") or get("mnw / mnq_w"),
+        mw_cm=get("mw / mq_w") if get("mw / mq_w") is not None else get("mnw / mnq_w"),
         mhw_cm=get("mhw / mhq_w"),
         ev_alarm_cm=get("ev-einsatzplan_w"),
         ev_alarm_m3s=get("ev-einsatzplan_q"),

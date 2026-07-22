@@ -236,6 +236,9 @@ class ErftverbandCoordinator(DataUpdateCoordinator[CoordinatorData]):
         self._descriptors = await self._api.fetch_station_descriptors()
         return self._descriptors
 
+    def set_descriptors(self, descriptors: dict[str, StationDescriptor]) -> None:
+        self._descriptors = descriptors
+
     def set_station_ids(self, station_ids: set[str]) -> None:
         self._station_ids = station_ids
 

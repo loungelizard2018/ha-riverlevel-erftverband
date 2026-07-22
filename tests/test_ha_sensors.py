@@ -16,21 +16,21 @@ async def test_sensors_created(hass, init_integration) -> None:
 
 @pytest.mark.usefixtures("mock_api_with_detail")
 async def test_water_level_sensor(hass, init_integration) -> None:
-    state = hass.states.get("sensor.essig_orbach_water_level")
+    state = hass.states.get("sensor.orbach_essig_water_level")
     assert state is not None
     assert state.state == "0.0"
 
 
 @pytest.mark.usefixtures("mock_api_with_detail")
 async def test_discharge_sensor(hass, init_integration) -> None:
-    state = hass.states.get("sensor.essig_orbach_discharge")
+    state = hass.states.get("sensor.orbach_essig_discharge")
     assert state is not None
     assert state.state == "0.0"
 
 
 @pytest.mark.usefixtures("mock_api_with_detail")
 async def test_flood_status_sensor(hass, init_integration) -> None:
-    state = hass.states.get("sensor.essig_orbach_flood_status")
+    state = hass.states.get("sensor.orbach_essig_flood_status")
     assert state is not None
     assert state.state == "normal"
 
@@ -38,8 +38,8 @@ async def test_flood_status_sensor(hass, init_integration) -> None:
 @pytest.mark.usefixtures("mock_api_with_detail")
 async def test_binary_sensors_created(hass, init_integration) -> None:
     for entity_id in (
-        "binary_sensor.essig_orbach_data_stale",
-        "binary_sensor.essig_orbach_flood_alert",
+        "binary_sensor.orbach_essig_data_stale",
+        "binary_sensor.orbach_essig_flood_alert",
         "binary_sensor.erftverband_howis_source_reachable",
     ):
         state = hass.states.get(entity_id)
@@ -48,33 +48,33 @@ async def test_binary_sensors_created(hass, init_integration) -> None:
     reachable = hass.states.get("binary_sensor.erftverband_howis_source_reachable")
     assert reachable.state == "on"
 
-    stale = hass.states.get("binary_sensor.essig_orbach_data_stale")
+    stale = hass.states.get("binary_sensor.orbach_essig_data_stale")
     assert stale.state == "off"
 
-    alert = hass.states.get("binary_sensor.essig_orbach_flood_alert")
+    alert = hass.states.get("binary_sensor.orbach_essig_flood_alert")
     assert alert.state == "off"
 
 
 @pytest.mark.usefixtures("mock_api_with_detail")
 async def test_last_measurement_sensor(hass, init_integration) -> None:
-    state = hass.states.get("sensor.essig_orbach_last_measurement")
+    state = hass.states.get("sensor.orbach_essig_last_measurement")
     assert state is not None
     assert state.state == "2026-07-21T16:01:00+00:00"
 
 
 @pytest.mark.usefixtures("mock_api_with_detail")
 async def test_wl_trend_sensor(hass, init_integration) -> None:
-    state = hass.states.get("sensor.essig_orbach_water_level_trend")
+    state = hass.states.get("sensor.orbach_essig_water_level_trend")
     assert state is not None
 
 
 @pytest.mark.usefixtures("mock_api_with_detail")
 async def test_q_trend_sensor(hass, init_integration) -> None:
-    state = hass.states.get("sensor.essig_orbach_discharge_trend")
+    state = hass.states.get("sensor.orbach_essig_discharge_trend")
     assert state is not None
 
 
 @pytest.mark.usefixtures("mock_api_with_detail")
 async def test_data_age_sensor(hass, init_integration) -> None:
-    state = hass.states.get("sensor.essig_orbach_data_age")
+    state = hass.states.get("sensor.orbach_essig_data_age")
     assert state is not None

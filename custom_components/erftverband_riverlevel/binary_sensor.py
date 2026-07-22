@@ -9,9 +9,14 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
+from .const import (
+    DOMAIN,
+    STATE_NORMAL,
+    STATE_UNKNOWN,
+)
 from .coordinator import ErftverbandCoordinator
 from .entity import ErftverbandEntity
+from .sensor import evaluate_flood_alert
 
 
 async def async_setup_entry(
@@ -20,7 +25,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     coordinator: ErftverbandCoordinator = hass.data[DOMAIN][entry.entry_id]
-    station_ids: set[str] = entry.data.get("station_ids", set())
+    station_ids: set[str] = coordinator._station_ids
 
     entities: list[ErftverbandEntity] = []
     for sid in station_ids:
@@ -45,6 +50,7 @@ class SourceReachableBinarySensor(ErftverbandBinarySensor):
     _attr_translation_key = "source_reachable"
     _attr_unique_id = "erftverband_source_reachable"
     _attr_has_entity_name = True
+    _attr_erftverband_sensor_role = "source_reachable"
 
     def __init__(
         self,
@@ -74,6 +80,7 @@ class SourceReachableBinarySensor(ErftverbandBinarySensor):
 class DataStaleBinarySensor(ErftverbandBinarySensor):
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
     _attr_translation_key = "data_stale"
+    _attr_erftverband_sensor_role = "data_stale"
 
     @property
     def is_on(self) -> bool:
@@ -92,6 +99,7 @@ class DataStaleBinarySensor(ErftverbandBinarySensor):
 class FloodAlertBinarySensor(ErftverbandBinarySensor):
     _attr_device_class = BinarySensorDeviceClass.SAFETY
     _attr_translation_key = "flood_alert"
+    _attr_erftverband_sensor_role = "flood_alarm"
 
     @property
     def is_on(self) -> bool:
@@ -106,30 +114,21 @@ class FloodAlertBinarySensor(ErftverbandBinarySensor):
         if age is not None and self.coordinator.is_stale(age):
             return False
 
-        water_level = station.water_level_cm
-        discharge = station.discharge_m3s
         meta = self.coordinator.get_metadata(self._station_id)
-        if meta is None:
+        if meta is None or meta.thresholds is None:
             return False
 
-        thresholds = meta.thresholds
-        if thresholds is None:
-            return False
-
-        for threshold in [
-            thresholds.ev_alarm_cm,
-            thresholds.ev_alarm_m3s,
-            thresholds.hq10_cm,
-            thresholds.hq10_m3s,
-            thresholds.hq100_cm,
-            thresholds.hq100_m3s,
-            thresholds.hqextrem_cm,
-            thresholds.hqextrem_m3s,
-        ]:
-            if threshold is not None:
-                if (water_level is not None and water_level >= threshold) or (
-                    discharge is not None and discharge >= threshold
-                ):
-                    return True
-
-        return False
+        t = meta.thresholds
+        flood_state = evaluate_flood_alert(
+            station.water_level_cm,
+            station.discharge_m3s,
+            t.ev_alarm_cm,
+            t.ev_alarm_m3s,
+            t.hq10_cm,
+            t.hq10_m3s,
+            t.hq100_cm,
+            t.hq100_m3s,
+            t.hqextrem_cm,
+            t.hqextrem_m3s,
+        )
+        return flood_state not in (STATE_NORMAL, STATE_UNKNOWN)
