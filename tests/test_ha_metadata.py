@@ -304,17 +304,10 @@ def test_static_folder_contains_assets() -> None:
 
 def test_background_not_oversized() -> None:
     """Background image width must not exceed 1920 pixels."""
-    import subprocess
-
     asset_path = ASSETS_DIR / "level_background.png"
-    result = subprocess.run(
-        ["sips", "-g", "pixelWidth", str(asset_path)],
-        capture_output=True,
-        text=True,
-    )
-    assert result.returncode == 0
-    assert "pixelWidth: " in result.stdout
-    width = int(result.stdout.strip().split()[-1])
+    data = asset_path.read_bytes()
+    assert data[:8] == b"\x89PNG\r\n\x1a\n", "Not a valid PNG header"
+    width = int.from_bytes(data[16:20], byteorder="big")
     assert width <= 1920, f"Image width {width} exceeds 1920px"
 
 
