@@ -28,6 +28,38 @@ from .const import (
 from .coordinator import ErftverbandCoordinator
 from .entity import ErftverbandEntity
 
+
+def evaluate_flood_alert(
+    water_level_cm: float | None,
+    discharge_m3s: float | None,
+    ev_alarm_cm: float | None,
+    ev_alarm_m3s: float | None,
+    hq10_cm: float | None,
+    hq10_m3s: float | None,
+    hq100_cm: float | None,
+    hq100_m3s: float | None,
+    hqextrem_cm: float | None,
+    hqextrem_m3s: float | None,
+) -> str:
+    max_state = STATE_NORMAL
+
+    def _check(value: float | None, threshold: float | None) -> bool:
+        if value is None or threshold is None:
+            return False
+        return value >= threshold
+
+    if _check(water_level_cm, hqextrem_cm) or _check(discharge_m3s, hqextrem_m3s):
+        max_state = STATE_EXTREME
+    elif _check(water_level_cm, hq100_cm) or _check(discharge_m3s, hq100_m3s):
+        max_state = STATE_HQ100
+    elif _check(water_level_cm, hq10_cm) or _check(discharge_m3s, hq10_m3s):
+        max_state = STATE_HQ10
+    elif _check(water_level_cm, ev_alarm_cm) or _check(discharge_m3s, ev_alarm_m3s):
+        max_state = STATE_EV_ACTION
+
+    return max_state
+
+
 TZ_BERLIN = ZoneInfo("Europe/Berlin")
 
 
@@ -37,7 +69,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     coordinator: ErftverbandCoordinator = hass.data[DOMAIN][entry.entry_id]
-    station_ids: set[str] = entry.data.get("station_ids", set())
+    station_ids: set[str] = coordinator._station_ids
 
     entities: list[ErftverbandEntity] = []
     for sid in station_ids:
@@ -76,6 +108,9 @@ class ErftverbandSensor(ErftverbandEntity, SensorEntity):
                 cat = None
             if cat is None or cat != EntityCategory.DIAGNOSTIC:
                 return False
+        value = self.native_value
+        if value is None:
+            return False
         return True
 
 
@@ -84,6 +119,7 @@ class WaterLevelSensor(ErftverbandSensor):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "cm"
     _attr_translation_key = "water_level"
+    _attr_erftverband_sensor_role = "water_level"
 
     @property
     def native_value(self) -> StateType:
@@ -100,6 +136,7 @@ class DischargeSensor(ErftverbandSensor):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "m³/s"
     _attr_translation_key = "discharge"
+    _attr_erftverband_sensor_role = "discharge"
 
     @property
     def native_value(self) -> StateType:
@@ -116,6 +153,7 @@ class WaterTrendRawSensor(ErftverbandSensor):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "cm/h"
     _attr_translation_key = "water_trend_raw"
+    _attr_erftverband_sensor_role = "water_level_trend"
 
     @property
     def native_value(self) -> StateType:
@@ -132,6 +170,7 @@ class DischargeTrendRawSensor(ErftverbandSensor):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "m³/s/h"
     _attr_translation_key = "discharge_trend_raw"
+    _attr_erftverband_sensor_role = "discharge_trend"
 
     @property
     def native_value(self) -> StateType:
@@ -147,6 +186,7 @@ class DischargeTrendRawSensor(ErftverbandSensor):
 class LastMeasurementSensor(ErftverbandSensor):
     _attr_device_class = SensorDeviceClass.TIMESTAMP
     _attr_translation_key = "last_measurement"
+    _attr_erftverband_sensor_role = "last_measurement"
 
     @property
     def native_value(self) -> datetime | None:
@@ -171,6 +211,7 @@ class DataAgeSensor(ErftverbandSensor):
     _attr_native_unit_of_measurement = "min"
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_translation_key = "data_age"
+    _attr_erftverband_sensor_role = "data_age"
 
     @property
     def available(self) -> bool:
@@ -191,6 +232,7 @@ class FloodStatusSensor(ErftverbandSensor):
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = FLOOD_STATES
     _attr_translation_key = "flood_status"
+    _attr_erftverband_sensor_role = "flood_status"
 
     @property
     def native_value(self) -> str:
@@ -205,49 +247,31 @@ class FloodStatusSensor(ErftverbandSensor):
         if age is not None and self.coordinator.is_stale(age):
             return STATE_UNKNOWN
 
-        water_level = station.water_level_cm
-        discharge = station.discharge_m3s
         meta = self.coordinator.get_metadata(self._station_id)
-        if meta is None:
+        if meta is None or meta.thresholds is None:
             return STATE_UNKNOWN
 
-        thresholds = meta.thresholds
-
-        max_state = STATE_NORMAL
-
-        if thresholds is not None:
-            if self._check_threshold(water_level, thresholds.hqextrem_cm) or self._check_threshold(
-                discharge, thresholds.hqextrem_m3s
-            ):
-                max_state = max(max_state, STATE_EXTREME, key=FLOOD_STATES.index)
-            if self._check_threshold(water_level, thresholds.hq100_cm) or self._check_threshold(
-                discharge, thresholds.hq100_m3s
-            ):
-                max_state = max(max_state, STATE_HQ100, key=FLOOD_STATES.index)
-            if self._check_threshold(water_level, thresholds.hq10_cm) or self._check_threshold(
-                discharge, thresholds.hq10_m3s
-            ):
-                max_state = max(max_state, STATE_HQ10, key=FLOOD_STATES.index)
-            if self._check_threshold(water_level, thresholds.ev_alarm_cm) or self._check_threshold(
-                discharge, thresholds.ev_alarm_m3s
-            ):
-                max_state = max(max_state, STATE_EV_ACTION, key=FLOOD_STATES.index)
-
-        return max_state
-
-    @staticmethod
-    def _check_threshold(value: float | None, threshold: float | None) -> bool:
-        if value is None or threshold is None:
-            return False
-        return value >= threshold
+        t = meta.thresholds
+        return evaluate_flood_alert(
+            station.water_level_cm,
+            station.discharge_m3s,
+            t.ev_alarm_cm,
+            t.ev_alarm_m3s,
+            t.hq10_cm,
+            t.hq10_m3s,
+            t.hq100_cm,
+            t.hq100_m3s,
+            t.hqextrem_cm,
+            t.hqextrem_m3s,
+        )
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
+        attrs = dict(super().extra_state_attributes or {})
         meta = self.coordinator.get_metadata(self._station_id)
         if meta is None or meta.thresholds is None:
-            return {}
+            return attrs
         t = meta.thresholds
-        attrs: dict[str, Any] = {}
         if t.mw_cm is not None:
             attrs["mw_cm"] = t.mw_cm
         if t.mhw_cm is not None:

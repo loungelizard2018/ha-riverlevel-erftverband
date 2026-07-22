@@ -2,19 +2,25 @@
   "config": {
     "step": {
       "user": {
-        "title": "Erftverband HOWIS – Pegelauswahl",
-        "description": "Wähle einen oder mehrere Pegel aus der Liste aus.",
+        "title": "Erftverband HOWIS \u2013 Pegelauswahl",
+        "description": "W\u00e4hle einen oder mehrere Pegel aus der Liste aus.",
         "data": {
           "station_ids": "Pegel",
-          "scan_interval": "Aktualisierungsintervall (Sekunden)",
-          "stale_threshold": "Veraltet-Schwelle (Minuten)"
+          "scan_interval": "Aktualisierungsintervall",
+          "stale_threshold": "Veraltet-Schwelle",
+          "load_all_stations": "Alle verf\u00fcgbaren Pegel laden"
+        },
+        "data_description": {
+          "scan_interval": "Zeit zwischen zwei HOWIS-Abfragen in Sekunden.",
+          "stale_threshold": "Ab diesem Alter gelten Messdaten als veraltet (Minuten).",
+          "load_all_stations": "L\u00e4dt automatisch alle aktuell in HOWIS verf\u00fcgbaren Pegel. Die sichtbaren Pegel k\u00f6nnen anschlie\u00dfend pro Dashboard-Karte ausgew\u00e4hlt werden."
         }
       }
     },
     "error": {
       "cannot_connect": "Verbindung zum Erftverband HOWIS fehlgeschlagen.",
-      "invalid_station": "Ausgewählter Pegel wurde nicht gefunden.",
-      "no_stations": "Mindestens ein Pegel muss ausgewählt werden.",
+      "invalid_station": "Ausgew\u00e4hlter Pegel wurde nicht gefunden.",
+      "no_stations": "Mindestens ein Pegel muss ausgew\u00e4hlt werden.",
       "unknown": "Ein unerwarteter Fehler ist aufgetreten."
     },
     "abort": {
@@ -24,10 +30,16 @@
   "options": {
     "step": {
       "init": {
-        "title": "Erftverband HOWIS – Optionen",
+        "title": "Erftverband HOWIS \u2013 Optionen",
         "data": {
-          "scan_interval": "Aktualisierungsintervall (Sekunden, 60–3600)",
-          "stale_threshold": "Veraltet-Schwelle (Minuten, 15–1440)"
+          "load_all_stations": "Alle verf\u00fcgbaren Pegel laden",
+          "scan_interval": "Aktualisierungsintervall",
+          "stale_threshold": "Veraltet-Schwelle"
+        },
+        "data_description": {
+          "load_all_stations": "L\u00e4dt automatisch alle aktuell in HOWIS verf\u00fcgbaren Pegel.",
+          "scan_interval": "Zeit zwischen zwei HOWIS-Abfragen in Sekunden.",
+          "stale_threshold": "Ab diesem Alter gelten Messdaten als veraltet (Minuten)."
         }
       }
     }

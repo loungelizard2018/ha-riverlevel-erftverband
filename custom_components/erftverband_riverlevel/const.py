@@ -7,9 +7,9 @@ from typing import Final
 DOMAIN: Final = "erftverband_riverlevel"
 NAME: Final = "Erftverband River Levels"
 MANUFACTURER: Final = "Erftverband"
-VERSION: Final = "0.1.0"
+VERSION: Final = "0.2.0"
 
-DEFAULT_SCAN_INTERVAL: Final = 300
+DEFAULT_SCAN_INTERVAL: Final = 900
 MIN_SCAN_INTERVAL: Final = 60
 MAX_SCAN_INTERVAL: Final = 3600
 
@@ -35,6 +35,9 @@ CONF_STATION_ID: Final = "station_id"
 CONF_STATION_IDS: Final = "station_ids"
 CONF_SCAN_INTERVAL: Final = "scan_interval"
 CONF_STALE_THRESHOLD: Final = "stale_threshold"
+CONF_LOAD_ALL_STATIONS: Final = "load_all_stations"
+
+DEFAULT_LOAD_ALL_STATIONS: Final = False
 
 ATTR_WATER_LEVEL_CM: Final = "water_level_cm"
 ATTR_WATER_TREND_CM_H: Final = "water_trend_cm_h"
@@ -46,6 +49,14 @@ ATTR_SOURCE_REACHABLE: Final = "source_reachable"
 ATTR_CACHE_USED: Final = "cache_used"
 ATTR_STATION_NAME: Final = "station_name"
 ATTR_WATERBODY: Final = "waterbody"
+
+ATTR_ERFTVERBAND_RIVERLEVEL: Final = "erftverband_riverlevel"
+ATTR_ERFTVERBAND_STATION_ID: Final = "erftverband_station_id"
+ATTR_ERFTVERBAND_STATION_NAME: Final = "erftverband_station_name"
+ATTR_ERFTVERBAND_WATERBODY: Final = "erftverband_waterbody"
+ATTR_ERFTVERBAND_SENSOR_ROLE: Final = "erftverband_sensor_role"
+ATTR_ERFTVERBAND_SOURCE_URL: Final = "erftverband_source_url"
+ATTR_ERFTVERBAND_SOURCE: Final = "erftverband_source"
 
 STATE_NORMAL: Final = "normal"
 STATE_EV_ACTION: Final = "ev_action"

@@ -62,6 +62,6 @@ async def test_device_created(hass, init_integration) -> None:
     dr = get_dr(hass)
     device = dr.async_get_device(identifiers={(DOMAIN, "Essig")})
     assert device is not None
-    assert device.name == "Essig (Orbach)"
+    assert device.name == "Orbach \u2013 Essig"
     assert device.manufacturer == "Erftverband"
     assert device.model == "Pegel"

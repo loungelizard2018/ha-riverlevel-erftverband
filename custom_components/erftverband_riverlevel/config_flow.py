@@ -12,9 +12,11 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import ErftverbandApi, extract_station_descriptors
 from .const import (
+    CONF_LOAD_ALL_STATIONS,
     CONF_SCAN_INTERVAL,
     CONF_STALE_THRESHOLD,
     CONF_STATION_IDS,
+    DEFAULT_LOAD_ALL_STATIONS,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_STALE_THRESHOLD,
     DOMAIN,
@@ -82,6 +84,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             CONF_STALE_THRESHOLD: user_input.get(
                                 CONF_STALE_THRESHOLD, DEFAULT_STALE_THRESHOLD
                             ),
+                            CONF_LOAD_ALL_STATIONS: user_input.get(
+                                CONF_LOAD_ALL_STATIONS, DEFAULT_LOAD_ALL_STATIONS
+                            ),
                         },
                     )
 
@@ -96,7 +101,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         options: list[selector.SelectOptionDict] = [
             selector.SelectOptionDict(
                 value=sid,
-                label=f"{desc.station_name} ({desc.waterbody})",
+                label=f"{desc.waterbody} \u2013 {desc.station_name}",
             )
             for sid, desc in sorted(
                 descriptors.items(),
@@ -115,6 +120,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             mode=selector.SelectSelectorMode.LIST,
                         )
                     ),
+                    vol.Optional(CONF_LOAD_ALL_STATIONS, default=DEFAULT_LOAD_ALL_STATIONS): bool,
                     vol.Required(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): vol.All(
                         vol.Coerce(int),
                         vol.Range(min=MIN_SCAN_INTERVAL, max=MAX_SCAN_INTERVAL),
@@ -152,6 +158,9 @@ class OptionsFlow(config_entries.OptionsFlow):
                     CONF_STALE_THRESHOLD: user_input.get(
                         CONF_STALE_THRESHOLD, DEFAULT_STALE_THRESHOLD
                     ),
+                    CONF_LOAD_ALL_STATIONS: user_input.get(
+                        CONF_LOAD_ALL_STATIONS, DEFAULT_LOAD_ALL_STATIONS
+                    ),
                 },
             )
 
@@ -163,11 +172,16 @@ class OptionsFlow(config_entries.OptionsFlow):
             CONF_STALE_THRESHOLD,
             self._config_entry.data.get(CONF_STALE_THRESHOLD, DEFAULT_STALE_THRESHOLD),
         )
+        current_load_all = self._config_entry.options.get(
+            CONF_LOAD_ALL_STATIONS,
+            self._config_entry.data.get(CONF_LOAD_ALL_STATIONS, DEFAULT_LOAD_ALL_STATIONS),
+        )
 
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
                 {
+                    vol.Optional(CONF_LOAD_ALL_STATIONS, default=current_load_all): bool,
                     vol.Required(CONF_SCAN_INTERVAL, default=current_scan): vol.All(
                         vol.Coerce(int),
                         vol.Range(min=MIN_SCAN_INTERVAL, max=MAX_SCAN_INTERVAL),
