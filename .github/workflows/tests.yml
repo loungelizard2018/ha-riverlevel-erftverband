@@ -25,4 +25,4 @@ jobs:
       - name: Format check
         run: uv run ruff format --check .
       - name: Test with pytest
-        run: uv run pytest -vv --cov=custom_components/erftverband_riverlevel --cov-report=term-missing
+        run: uv run pytest -q --tb=short --cov=custom_components/erftverband_riverlevel --cov-report=term-missing
