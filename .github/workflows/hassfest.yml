@@ -14,4 +14,22 @@ jobs:
     name: Hassfest
     steps:
       - uses: "actions/checkout@v6"
-      - uses: "home-assistant/actions/hassfest@master"
+      - name: Run hassfest
+        id: hassfest
+        shell: bash
+        run: |
+          set +e
+          docker run --rm -v "$GITHUB_WORKSPACE":/github/workspace ghcr.io/home-assistant/hassfest 2>&1 | tee hassfest.log
+          status=${PIPESTATUS[0]}
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Upload hassfest log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hassfest-log
+          path: hassfest.log
+          if-no-files-found: error
+      - name: Fail if hassfest failed
+        if: steps.hassfest.outputs.status != '0'
+        run: exit 1
