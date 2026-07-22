@@ -3,7 +3,7 @@
   "name": "Erftverband River Levels",
   "codeowners": ["@loungelizard2018"],
   "config_flow": true,
-  "dependencies": [],
+  "dependencies": ["http"],
   "documentation": "https://github.com/loungelizard2018/ha-riverlevel-erftverband",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
