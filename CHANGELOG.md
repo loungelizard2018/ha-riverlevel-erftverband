@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.2.1
+
+- Fix loading cached flood thresholds from Home Assistant storage
+- Fix flood status sensors failing when the state is `unknown`
+- Restore flood status and flood alarm entities after upgrading to v0.2.0
+
 ## v0.2.0
 
 - Own responsive Lovelace card (`custom:erftverband-riverlevel-card`)

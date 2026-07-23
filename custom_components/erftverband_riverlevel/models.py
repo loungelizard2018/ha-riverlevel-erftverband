@@ -36,6 +36,13 @@ class StationMetadata:
     catchment_area_km2: float | None = None
     fetched_at: str | None = None
 
+    def __post_init__(self) -> None:
+        """Rehydrate nested threshold data loaded from Home Assistant storage."""
+        if isinstance(self.thresholds, dict):
+            self.thresholds = StationThresholds(**self.thresholds)
+        elif self.thresholds is None:
+            self.thresholds = StationThresholds()
+
 
 @dataclass
 class StationMeasurement:
