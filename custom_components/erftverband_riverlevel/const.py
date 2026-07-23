@@ -7,7 +7,7 @@ from typing import Final
 DOMAIN: Final = "erftverband_riverlevel"
 NAME: Final = "Erftverband River Levels"
 MANUFACTURER: Final = "Erftverband"
-VERSION: Final = "0.2.0"
+VERSION: Final = "0.2.1"
 
 DEFAULT_SCAN_INTERVAL: Final = 900
 MIN_SCAN_INTERVAL: Final = 60
@@ -73,6 +73,7 @@ FLOOD_STATES: Final = [
     STATE_HQ10,
     STATE_HQ100,
     STATE_EXTREME,
+    STATE_UNKNOWN,
 ]
 
 STORAGE_KEY_METADATA: Final = f"{DOMAIN}.metadata"
