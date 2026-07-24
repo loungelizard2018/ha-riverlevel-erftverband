@@ -97,6 +97,7 @@ Go to **Settings → Devices & Services → ... → System Health → Diagnostic
 ## Lovelace Card
 
 This integration ships a responsive Lovelace card (`custom:erftverband-riverlevel-card`) with an embedded background image and HACS brand icon.
+<img width="426" height="349" alt="image" src="https://github.com/user-attachments/assets/7a867839-b53f-4b64-8151-3f6040855a12" />
 
 ### Card Installation
 
