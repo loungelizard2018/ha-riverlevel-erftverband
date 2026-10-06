@@ -29,5 +29,5 @@ fail_under = 80
 dev = [
     "homeassistant>=2026.2.3",
     "pytest-homeassistant-custom-component>=0.13.316",
-    "ruff>=0.15.22",
+    "ruff>=0.16.10",
 ]
